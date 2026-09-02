@@ -88,7 +88,7 @@ class OtpViewModel extends StateNotifier<OtpState> {
     try {
       final authRepo = _ref.read(authRepositoryProvider);
       final result = await authRepo.sendOTP(phoneNumber);
-      final devOtp = result['otp']?.toString();
+      final devOtp = result['data']?['otp']?.toString();
       if (devOtp != null && devOtp.isNotEmpty) {
         final digits = List.generate(AppConfig.otpLength, (i) => i < devOtp.length ? devOtp[i] : '');
         state = state.copyWith(devOtp: devOtp, otpDigits: digits);

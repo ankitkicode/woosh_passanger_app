@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/woosh_brand_header.dart';
 import '../../../shared/widgets/woosh_gradient_button.dart';
 import '../../ride/view_models/ride_view_model.dart';
+import '../../../data/services/socket_service.dart';
 
 /// Finding Your Rider screen — matches mockup exactly
 class SearchingRiderView extends ConsumerStatefulWidget {
@@ -31,10 +32,19 @@ class _SearchingRiderViewState extends ConsumerState<SearchingRiderView>
     _pulseAnimation = Tween<double>(begin: 0.85, end: 1.2).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
-    _startPolling();
+    _startListening();
   }
 
-  void _startPolling() {
+  void _startListening() {
+    // Primary: Listen via Socket for instant update
+    SocketService().onRideAccepted((data) {
+      if (data['rideId'] == widget.rideId && mounted) {
+        _pollTimer?.cancel();
+        context.go('/rider-found/${widget.rideId}');
+      }
+    });
+
+    // Fallback: Poll every 5 seconds in case socket misses it
     _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
       final ride = await ref.read(rideViewModelProvider.notifier).getRideDetails(widget.rideId);
       if (ride != null && ride.status == 'accepted' && mounted) {
@@ -278,6 +288,7 @@ class _SearchingRiderViewState extends ConsumerState<SearchingRiderView>
   void dispose() {
     _pulseController.dispose();
     _pollTimer?.cancel();
+    SocketService().offRideAccepted();
     super.dispose();
   }
 }

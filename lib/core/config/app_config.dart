@@ -6,9 +6,9 @@ class AppConfig {
   /// Base URL for the backend API.
   // /// 192.168.1.31 is your Mac's local IP, which works for both Emulator and Physical Device testing.
   // /// (10.0.2.2 only works for Android Emulator)
-  // static const String baseUrl = 'http://192.168.1.31:5001/api/v1';
+  // static const String baseUrl = 'http://127.0.0.1:5001/api/v1';
 
-  static const String baseUrl = 'https://wooshride.in/api/v1'; 
+  static const String baseUrl = 'https://wooshride.in/api/v1';
 
   /// Connection timeout in milliseconds
   static const int connectTimeout = 15000;

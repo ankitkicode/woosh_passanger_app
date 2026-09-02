@@ -117,7 +117,9 @@ class SignupViewModel extends StateNotifier<SignupState> {
     try {
       final authRepo = _ref.read(authRepositoryProvider);
       final result = await authRepo.sendOTP(state.whatsappNumber);
-      final devOtp = result['otp']?.toString();
+      
+      // In dev mode, backend returns OTP in the response
+      final devOtp = result['data']?['otp']?.toString();
       state = state.copyWith(isSubmitting: false, devOtp: devOtp);
       return devOtp ?? 'sent';
     } catch (e) {

@@ -51,10 +51,27 @@ class SocketService {
     });
   }
 
+  void joinPassengerRoom(String passengerId) {
+    if (socket != null && socket!.connected) {
+      socket!.emit('passenger:join_room', {'passengerId': passengerId});
+    }
+  }
+
   void joinRideRoom(String rideId) {
     if (socket != null && socket!.connected) {
       socket!.emit('passenger:join_ride', {'rideId': rideId});
     }
+  }
+
+  void onRideAccepted(Function(Map<String, dynamic>) callback) {
+    if (socket == null) return;
+    socket!.on('ride_accepted', (data) {
+      callback(data as Map<String, dynamic>);
+    });
+  }
+
+  void offRideAccepted() {
+    socket?.off('ride_accepted');
   }
 
   void disconnect() {

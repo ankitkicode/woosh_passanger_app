@@ -10,6 +10,7 @@ import '../../../shared/widgets/woosh_bottom_nav.dart';
 import '../../ride/view_models/ride_view_model.dart';
 import '../../ride/models/ride_model.dart';
 import '../../../data/services/socket_service.dart';
+import '../../../providers/auth_provider.dart';
 
 // Google Maps API Key — same as AndroidManifest.xml
 const String _kGoogleApiKey = 'AIzaSyCfmd3W3DPh3jYOeYx41Bva9GIxCmpo7UY';
@@ -78,6 +79,16 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
     };
 
     socketService.connect();
+
+    // Join personal passenger room
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) {
+        final user = ref.read(authStateProvider).user;
+        if (user != null) {
+          socketService.joinPassengerRoom(user.id);
+        }
+      }
+    });
   }
 
   Future<void> _getCurrentLocation() async {

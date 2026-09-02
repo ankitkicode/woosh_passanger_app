@@ -58,7 +58,7 @@ class LoginViewModel extends StateNotifier<LoginState> {
       final result = await authRepo.sendOTP(state.phoneNumber);
 
       // In dev mode, backend returns OTP in the response
-      final devOtp = result['otp']?.toString();
+      final devOtp = result['data']?['otp']?.toString();
       state = state.copyWith(isSubmitting: false, devOtp: devOtp);
       return devOtp ?? 'sent';
     } catch (e) {
