@@ -42,6 +42,9 @@ class VerificationViewModel extends StateNotifier<VerificationState> {
     final XFile? photo = await _picker.pickImage(
       source: ImageSource.camera,
       preferredCameraDevice: CameraDevice.front,
+      imageQuality: 50,
+      maxWidth: 800,
+      maxHeight: 800,
     );
 
     if (photo != null) {
