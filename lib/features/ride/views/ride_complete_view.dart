@@ -203,7 +203,7 @@ class _RideCompleteViewState extends ConsumerState<RideCompleteView> {
                 ),
                 const SizedBox(height: 16),
                 WooshGradientButton(
-                  text: 'Book Another Ride',
+                  text: 'Done',
                   onPressed: () {
                     ref.read(rideViewModelProvider.notifier).clearRide();
                     context.go('/home');

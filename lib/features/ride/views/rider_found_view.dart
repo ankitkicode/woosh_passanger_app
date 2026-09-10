@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/woosh_brand_header.dart';
 import '../../../shared/widgets/woosh_gradient_button.dart';
 import '../../ride/view_models/ride_view_model.dart';
+import '../../../data/services/socket_service.dart';
 
 /// Rider Found Screen — matches mockup exactly
 class RiderFoundView extends ConsumerStatefulWidget {
@@ -18,12 +20,36 @@ class RiderFoundView extends ConsumerStatefulWidget {
 }
 
 class _RiderFoundViewState extends ConsumerState<RiderFoundView> {
+  Timer? _pollTimer;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(rideViewModelProvider.notifier).getRideDetails(widget.rideId);
-      ref.read(rideViewModelProvider.notifier).startPolling(widget.rideId);
+      
+      // Listen via Socket for instant update
+      SocketService().onRiderArrived((data) {
+        if (data['rideId'] == widget.rideId && mounted) {
+          ref.read(rideViewModelProvider.notifier).getRideDetails(widget.rideId);
+        }
+      });
+
+      SocketService().onRideStarted((data) {
+        if (data['rideId'] == widget.rideId && mounted) {
+          _pollTimer?.cancel();
+          context.go('/ride-active/${widget.rideId}');
+        }
+      });
+
+      // Fallback: Poll every 5 seconds in case socket misses it
+      _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+        final ride = await ref.read(rideViewModelProvider.notifier).getRideDetails(widget.rideId);
+        if (ride != null && ride.status == 'started' && mounted) {
+          _pollTimer?.cancel();
+          context.go('/ride-active/${widget.rideId}');
+        }
+      });
     });
   }
 
@@ -90,24 +116,57 @@ class _RiderFoundViewState extends ConsumerState<RiderFoundView> {
                     scrollGesturesEnabled: false,
                     mapToolbarEnabled: false,
                   ),
-                  // Arriving badge
-                  Positioned(
-                    bottom: 12, right: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 6)],
+                  // Arriving badge or OTP
+                  if (ride?.status == 'rider_arrived')
+                    Positioned(
+                      bottom: 12, right: 12, left: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryPink,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 10)],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('🔒 Share this OTP with rider', style: TextStyle(fontSize: 13, color: Colors.white70, fontWeight: FontWeight.w500)),
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                ride?.rideOtp ?? '----', 
+                                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 8, color: AppColors.darkText)
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text('Rider will enter this to start', style: TextStyle(fontSize: 11, color: Colors.white70)),
+                          ],
+                        ),
                       ),
-                      child: Column(
-                        children: [
-                          Text('Arriving in', style: TextStyle(fontSize: 11, color: AppColors.primaryPink, fontWeight: FontWeight.w500)),
-                          const Text('2 min', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.darkText)),
-                        ],
+                    )
+                  else
+                    Positioned(
+                      bottom: 12, right: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 6)],
+                        ),
+                        child: Column(
+                          children: [
+                            Text(ride?.status == 'accepted' ? 'Arriving in' : 'Status', style: const TextStyle(fontSize: 11, color: AppColors.primaryPink, fontWeight: FontWeight.w500)),
+                            Text(ride?.status == 'accepted' ? '2 min' : 'Waiting...', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.darkText)),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),

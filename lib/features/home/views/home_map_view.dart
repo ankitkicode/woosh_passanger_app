@@ -23,6 +23,7 @@ class HomeMapView extends ConsumerStatefulWidget {
 }
 
 class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderStateMixin {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   GoogleMapController? _mapController;
   LatLng _currentPosition = const LatLng(23.2599, 77.4126); // Bhopal default
   bool _locationLoaded = false;
@@ -189,6 +190,34 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
     } : _riderMarkers.values.toSet();
 
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: Drawer(
+        backgroundColor: Colors.white,
+        child: Consumer(builder: (context, ref, child) {
+          final user = ref.watch(authStateProvider).user;
+          return Column(
+            children: [
+              UserAccountsDrawerHeader(
+                decoration: BoxDecoration(color: AppColors.primaryPink.withValues(alpha: 0.1)),
+                currentAccountPicture: const CircleAvatar(
+                  backgroundColor: AppColors.primaryPink,
+                  child: Icon(Icons.person, color: Colors.white),
+                ),
+                accountName: Text(user?.name ?? 'Woosh Passenger', style: const TextStyle(color: AppColors.darkText, fontWeight: FontWeight.bold)),
+                accountEmail: Text(user?.phoneNumber ?? '+91 9876543210', style: const TextStyle(color: AppColors.lightGray)),
+              ),
+              ListTile(
+                leading: const Icon(Icons.person_outline, color: AppColors.darkText),
+                title: const Text('Profile', style: TextStyle(fontWeight: FontWeight.w600)),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push('/profile');
+                },
+              ),
+            ],
+          );
+        }),
+      ),
       body: Stack(
         children: [
           // ── Full-screen Google Map ──
@@ -216,14 +245,17 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
                 children: [
                   Row(
                     children: [
-                      Container(
-                        width: 40, height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 6)],
+                      GestureDetector(
+                        onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                        child: Container(
+                          width: 40, height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 6)],
+                          ),
+                          child: const Icon(Icons.menu, color: AppColors.darkText, size: 22),
                         ),
-                        child: const Icon(Icons.menu, color: AppColors.darkText, size: 22),
                       ),
                       const Spacer(),
                       Column(

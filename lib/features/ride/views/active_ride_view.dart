@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/woosh_gradient_button.dart';
@@ -41,11 +42,16 @@ class _ActiveRideViewState extends ConsumerState<ActiveRideView> {
       setState(() {
         _liveRiderPosition = LatLng(data['latitude'], data['longitude']);
       });
-      // Optionally animate camera to rider position
       if (_mapController != null && _liveRiderPosition != null) {
         // _mapController!.animateCamera(CameraUpdate.newLatLng(_liveRiderPosition!));
       }
     };
+
+    socketService.onRideCompleted((data) {
+      if (data['rideId'] == widget.rideId && mounted) {
+        context.go('/ride-complete/${widget.rideId}');
+      }
+    });
   }
 
   @override
@@ -139,7 +145,7 @@ class _ActiveRideViewState extends ConsumerState<ActiveRideView> {
                         Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.successGreen, shape: BoxShape.circle)),
                         const SizedBox(width: 6),
                         Text(
-                          ride?.status == 'in_progress' ? 'Ride Active' : 'Rider Arriving',
+                          (ride?.status == 'started' || ride?.status == 'in_progress') ? 'Ride Active' : 'Status: ${ride?.status ?? "..."}',
                           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.darkText),
                         ),
                       ],
@@ -268,7 +274,12 @@ class _ActiveRideViewState extends ConsumerState<ActiveRideView> {
 
                   // Share live location
                   OutlinedButton.icon(
-                    onPressed: () {},
+                    onPressed: () {
+                      final riderName = rider?.name ?? 'Woosh Rider';
+                      final vehicle = rider?.vehicleNumber ?? '';
+                      final link = 'https://woosh.com/track/${widget.rideId}';
+                      Share.share('Track my Woosh ride with $riderName ($vehicle) live at: $link');
+                    },
                     icon: const Icon(Icons.share_location, color: AppColors.primaryPink, size: 18),
                     label: const Text('Share Live Location', style: TextStyle(color: AppColors.primaryPink)),
                     style: OutlinedButton.styleFrom(

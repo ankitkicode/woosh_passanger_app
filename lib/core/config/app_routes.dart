@@ -16,6 +16,7 @@ import '../../features/profile/views/profile_view.dart';
 import '../../features/profile/views/ride_history_view.dart';
 import '../../features/profile/views/wallet_view.dart';
 import '../../features/profile/views/edit_profile_view.dart';
+import '../../features/safety/views/safety_view.dart';
 
 class AppRoutes {
   AppRoutes._();
@@ -56,6 +57,10 @@ class AppRoutes {
       GoRoute(
         path: '/search',
         builder: (context, state) => const SearchDestinationView(),
+      ),
+      GoRoute(
+        path: '/safety',
+        builder: (context, state) => const SafetyView(),
       ),
 
       // ── Ride Flow ─────────────────────────────────────
@@ -102,7 +107,7 @@ class AppRoutes {
         builder: (context, state) => const EditProfileView(),
       ),
       GoRoute(
-        path: '/history',
+        path: '/ride-history',
         builder: (context, state) => const RideHistoryView(),
       ),
       GoRoute(

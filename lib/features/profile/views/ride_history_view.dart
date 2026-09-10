@@ -83,8 +83,9 @@ class _RideHistoryViewState extends ConsumerState<RideHistoryView> {
                       separatorBuilder: (_, __) => const SizedBox(height: 12),
                       itemBuilder: (_, i) {
                         final ride = _rides[i];
-                        final fare = (ride['fare'] as num? ?? 0).toDouble();
+                        final fare = (ride['finalFare'] as num? ?? ride['estimatedFare'] as num? ?? 0).toDouble();
                         final status = (ride['status'] ?? 'completed').toString();
+                        final isCompleted = status == 'completed' || status == 'payment_completed';
                         final date = ride['createdAt'] != null ? DateTime.tryParse(ride['createdAt'].toString()) : null;
 
                         return Container(
@@ -111,11 +112,11 @@ class _RideHistoryViewState extends ConsumerState<RideHistoryView> {
                                       children: [
                                         Text(
                                           date != null ? DateFormat('dd MMM yyyy, hh:mm a').format(date) : 'Date —',
-                                          style: const TextStyle(fontSize: 12, color: AppColors.lightGray),
+                                          style: const TextStyle(fontFamily: 'Poppins', fontSize: 12, color: AppColors.lightGray),
                                         ),
                                         Text(
                                           '${(ride['distanceKm'] as num? ?? 0).toStringAsFixed(1)} km  •  ${ride['durationMinutes'] ?? 0} mins',
-                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                          style: const TextStyle(fontFamily: 'Poppins', fontSize: 13, fontWeight: FontWeight.w600),
                                         ),
                                       ],
                                     ),
@@ -123,17 +124,17 @@ class _RideHistoryViewState extends ConsumerState<RideHistoryView> {
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
-                                      Text('₹${fare.toStringAsFixed(0)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryPink)),
+                                      Text('₹${fare.toStringAsFixed(0)}', style: const TextStyle(fontFamily: 'Poppins', fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryPink)),
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                         decoration: BoxDecoration(
-                                          color: status == 'completed' ? const Color(0xFFE8F5E9) : AppColors.lightPink,
+                                          color: (isCompleted ? AppColors.successGreen : AppColors.errorRed).withValues(alpha: 0.1),
                                           borderRadius: BorderRadius.circular(8),
                                         ),
                                         child: Text(
                                           status.toUpperCase(),
-                                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold,
-                                            color: status == 'completed' ? AppColors.successGreen : AppColors.primaryPink),
+                                          style: TextStyle(fontFamily: 'Poppins', fontSize: 10, fontWeight: FontWeight.bold,
+                                            color: isCompleted ? AppColors.successGreen : AppColors.errorRed),
                                         ),
                                       ),
                                     ],
@@ -145,7 +146,7 @@ class _RideHistoryViewState extends ConsumerState<RideHistoryView> {
                                 children: [
                                   const Icon(Icons.circle, size: 8, color: AppColors.secondaryPurple),
                                   const SizedBox(width: 8),
-                                  Expanded(child: Text(ride['pickup']?['address'] ?? '—', style: const TextStyle(fontSize: 12, color: AppColors.lightGray))),
+                                  Expanded(child: Text(ride['pickup']?['address'] ?? '—', style: const TextStyle(fontFamily: 'Poppins', fontSize: 12, color: AppColors.lightGray))),
                                 ],
                               ),
                               const SizedBox(height: 4),
@@ -153,7 +154,7 @@ class _RideHistoryViewState extends ConsumerState<RideHistoryView> {
                                 children: [
                                   const Icon(Icons.location_on, size: 10, color: AppColors.primaryPink),
                                   const SizedBox(width: 8),
-                                  Expanded(child: Text(ride['drop']?['address'] ?? '—', style: const TextStyle(fontSize: 12, color: AppColors.lightGray))),
+                                  Expanded(child: Text(ride['drop']?['address'] ?? '—', style: const TextStyle(fontFamily: 'Poppins', fontSize: 12, color: AppColors.lightGray))),
                                 ],
                               ),
                             ],

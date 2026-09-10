@@ -74,6 +74,39 @@ class SocketService {
     socket?.off('ride_accepted');
   }
 
+  void onRiderArrived(Function(Map<String, dynamic>) callback) {
+    if (socket == null) return;
+    socket!.on('rider_arrived', (data) {
+      callback(data as Map<String, dynamic>);
+    });
+  }
+
+  void offRiderArrived() {
+    socket?.off('rider_arrived');
+  }
+
+  void onRideStarted(Function(Map<String, dynamic>) callback) {
+    if (socket == null) return;
+    socket!.on('ride_started', (data) {
+      callback(data as Map<String, dynamic>);
+    });
+  }
+
+  void offRideStarted() {
+    socket?.off('ride_started');
+  }
+
+  void onRideCompleted(Function(Map<String, dynamic>) callback) {
+    if (socket == null) return;
+    socket!.on('ride_completed', (data) {
+      callback(data as Map<String, dynamic>);
+    });
+  }
+
+  void offRideCompleted() {
+    socket?.off('ride_completed');
+  }
+
   void disconnect() {
     socket?.disconnect();
   }

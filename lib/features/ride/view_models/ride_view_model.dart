@@ -164,7 +164,7 @@ class RideViewModel extends StateNotifier<RideState> {
   Future<void> triggerSOS(String rideId) async {
     try {
       final api = _ref.read(apiClientProvider);
-      await api.post('/tracking/sos', data: {'rideId': rideId});
+      await api.post('/ride/$rideId/sos', data: {});
     } catch (_) {}
   }
 

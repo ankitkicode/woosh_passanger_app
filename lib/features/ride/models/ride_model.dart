@@ -123,12 +123,12 @@ class RideModel {
       status: (json['status'] ?? 'pending').toString(),
       pickup: RideLocation.fromJson(json['pickup'] as Map<String, dynamic>),
       drop: RideLocation.fromJson(json['drop'] as Map<String, dynamic>),
-      fare: (json['fare'] as num? ?? 0).toDouble(),
+      fare: (json['finalFare'] as num? ?? json['fare'] as num? ?? json['estimatedFare'] as num? ?? 0).toDouble(),
       distanceKm: (json['distanceKm'] as num? ?? 0).toDouble(),
       durationMinutes: (json['durationMinutes'] as num? ?? 0).toInt(),
       paymentMethod: (json['paymentMethod'] ?? 'cash').toString(),
       rider: json['rider'] != null ? RiderInfo.fromJson(json['rider'] as Map<String, dynamic>) : null,
-      rideOtp: json['rideOtp']?.toString(),
+      rideOtp: json['otp']?.toString() ?? json['rideOtp']?.toString(),
       createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt'].toString()) : null,
     );
   }
