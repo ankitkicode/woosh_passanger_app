@@ -27,9 +27,11 @@ class AuthService {
 
   /// POST /auth/send-otp
   /// Returns the OTP in dev mode (backend exposes it in non-production).
-  Future<Map<String, dynamic>> sendOTP(String phoneNumber) async {
+  Future<Map<String, dynamic>> sendOTP(String phoneNumber, {String action = 'login'}) async {
     final response = await _dio.post('/auth/send-otp', data: {
       'phoneNumber': phoneNumber,
+      'role': 'passenger',
+      'action': action,
     });
     return response.data as Map<String, dynamic>;
   }

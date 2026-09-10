@@ -59,8 +59,8 @@ class AuthRepository {
   }
 
   /// Send OTP to phone number. Returns OTP in dev mode.
-  Future<Map<String, dynamic>> sendOTP(String phoneNumber) async {
-    return _authService.sendOTP(phoneNumber);
+  Future<Map<String, dynamic>> sendOTP(String phoneNumber, {String action = 'login'}) async {
+    return _authService.sendOTP(phoneNumber, action: action);
   }
 
   /// Verify OTP, store tokens + user, return AuthResponse.

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/app_config.dart';
 import '../../../providers/auth_provider.dart';
@@ -130,6 +131,10 @@ class OtpViewModel extends StateNotifier<OtpState> {
   }
 
   String _extractError(dynamic e) {
+    if (e is DioException && e.response?.data != null) {
+      final message = e.response?.data['message']?.toString();
+      if (message != null && message.isNotEmpty) return message;
+    }
     final msg = e.toString();
     if (msg.contains('Invalid OTP')) return 'Invalid OTP. Please try again.';
     if (msg.contains('expired')) return 'OTP has expired. Please resend.';
