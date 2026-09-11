@@ -260,19 +260,7 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
                       const Spacer(),
                       Column(
                         children: [
-                          ShaderMask(
-                            shaderCallback: (r) => AppColors.brandGradient.createShader(r),
-                            child: const Text('Woosh', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1)),
-                          ),
-                          RichText(
-                            text: const TextSpan(
-                              style: TextStyle(fontSize: 11),
-                              children: [
-                                TextSpan(text: 'Be Safe, ', style: TextStyle(color: AppColors.lightGray)),
-                                TextSpan(text: 'Be Fearless', style: TextStyle(color: AppColors.primaryPink, fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                          ),
+                          Image.asset('assets/woosh_logo.png', height: 30),
                         ],
                       ),
                       const Spacer(),

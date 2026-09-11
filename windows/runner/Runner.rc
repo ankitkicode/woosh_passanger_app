@@ -89,11 +89,11 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
+            VALUE "CompanyName", "com.woosh.in" "\0"
             VALUE "FileDescription", "woosh" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "woosh" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 com.woosh.in. All rights reserved." "\0"
             VALUE "OriginalFilename", "woosh.exe" "\0"
             VALUE "ProductName", "woosh" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"

@@ -1,5 +1,1 @@
-package com.example.woosh
-
-import io.flutter.embedding.android.FlutterActivity
-
-class MainActivity : FlutterActivity()
+// This file was moved to com/woosh/in/MainActivity.kt

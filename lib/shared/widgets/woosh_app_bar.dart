@@ -22,21 +22,7 @@ class WooshAppBar extends StatelessWidget implements PreferredSizeWidget {
         children: [
           Image.asset('assets/woosh_logo.png', height: 30),
           const SizedBox(height: 2),
-          RichText(
-            text: const TextSpan(
-              style: TextStyle(fontSize: 10, color: Colors.black),
-              children: [
-                TextSpan(text: 'Be Safe, '),
-                TextSpan(
-                  text: 'Be Fearless',
-                  style: TextStyle(
-                    color: AppColors.primaryPink,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
+
         ],
       ),
       leading: onBack != null
