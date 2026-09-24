@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/splash/views/splash_view.dart';
 import '../../features/onboarding/views/verification_view.dart';
@@ -56,7 +55,19 @@ class AppRoutes {
       ),
       GoRoute(
         path: '/search',
-        builder: (context, state) => const SearchDestinationView(),
+        builder: (context, state) {
+          final focus = state.uri.queryParameters['focus'] ?? 'drop';
+          final fromConfirm = state.uri.queryParameters['fromConfirm'] == 'true';
+          return SearchDestinationView(initialFocus: focus, fromConfirm: fromConfirm);
+        },
+      ),
+      GoRoute(
+        path: '/search-destination',
+        builder: (context, state) {
+          final focus = state.uri.queryParameters['focus'] ?? 'drop';
+          final fromConfirm = state.uri.queryParameters['fromConfirm'] == 'true';
+          return SearchDestinationView(initialFocus: focus, fromConfirm: fromConfirm);
+        },
       ),
       GoRoute(
         path: '/safety',

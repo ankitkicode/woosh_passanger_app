@@ -191,33 +191,7 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
 
     return Scaffold(
       key: _scaffoldKey,
-      drawer: Drawer(
-        backgroundColor: Colors.white,
-        child: Consumer(builder: (context, ref, child) {
-          final user = ref.watch(authStateProvider).user;
-          return Column(
-            children: [
-              UserAccountsDrawerHeader(
-                decoration: BoxDecoration(color: AppColors.primaryPink.withValues(alpha: 0.1)),
-                currentAccountPicture: const CircleAvatar(
-                  backgroundColor: AppColors.primaryPink,
-                  child: Icon(Icons.person, color: Colors.white),
-                ),
-                accountName: Text(user?.name ?? 'Woosh Passenger', style: const TextStyle(color: AppColors.darkText, fontWeight: FontWeight.bold)),
-                accountEmail: Text(user?.phoneNumber ?? '+91 9876543210', style: const TextStyle(color: AppColors.lightGray)),
-              ),
-              ListTile(
-                leading: const Icon(Icons.person_outline, color: AppColors.darkText),
-                title: const Text('Profile', style: TextStyle(fontWeight: FontWeight.w600)),
-                onTap: () {
-                  Navigator.pop(context);
-                  context.push('/profile');
-                },
-              ),
-            ],
-          );
-        }),
-      ),
+
       body: Stack(
         children: [
           // ── Full-screen Google Map ──
@@ -244,26 +218,11 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      GestureDetector(
-                        onTap: () => _scaffoldKey.currentState?.openDrawer(),
-                        child: Container(
-                          width: 40, height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 6)],
-                          ),
-                          child: const Icon(Icons.menu, color: AppColors.darkText, size: 22),
-                        ),
-                      ),
-                      const Spacer(),
-                      Column(
-                        children: [
-                          Image.asset('assets/woosh_logo.png', height: 30),
-                        ],
-                      ),
-                      const Spacer(),
+
+
+
                       Container(
                         width: 40, height: 40,
                         decoration: BoxDecoration(

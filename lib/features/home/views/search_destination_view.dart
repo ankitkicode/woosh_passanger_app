@@ -11,37 +11,81 @@ import '../../ride/models/ride_model.dart';
 // Same API key as home_map_view — keep in sync
 const String _kGoogleApiKey = 'AIzaSyCfmd3W3DPh3jYOeYx41Bva9GIxCmpo7UY';
 
-/// Search Destination View — real Google Places Autocomplete
+/// Search Destination / Pickup View — Rapido-style location editor
 class SearchDestinationView extends ConsumerStatefulWidget {
-  const SearchDestinationView({super.key});
+  final String initialFocus; // 'pickup' or 'drop'
+  final bool fromConfirm;
+
+  const SearchDestinationView({
+    super.key,
+    this.initialFocus = 'drop',
+    this.fromConfirm = false,
+  });
 
   @override
   ConsumerState<SearchDestinationView> createState() => _SearchDestinationViewState();
 }
 
 class _SearchDestinationViewState extends ConsumerState<SearchDestinationView> {
-  final TextEditingController _controller = TextEditingController();
+  late final TextEditingController _pickupController;
+  late final TextEditingController _dropController;
+  late final FocusNode _pickupFocusNode;
+  late final FocusNode _dropFocusNode;
+
   late final PlacesService _placesService;
 
   List<PlacePrediction> _predictions = [];
   List<PlaceDetails> _recentPlaces = [];
   bool _isSearching = false;
+  String _activeField = 'drop'; // 'pickup' or 'drop'
   Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
+    _activeField = widget.initialFocus;
+
+    final rideState = ref.read(rideViewModelProvider);
+    _pickupController = TextEditingController(text: rideState.pickup?.address ?? '');
+    _dropController = TextEditingController(text: rideState.drop?.address ?? '');
+
+    _pickupFocusNode = FocusNode();
+    _dropFocusNode = FocusNode();
+
     _placesService = PlacesService(_kGoogleApiKey);
     _loadNearbyPlaces();
+
+    _pickupFocusNode.addListener(() {
+      if (_pickupFocusNode.hasFocus) {
+        setState(() => _activeField = 'pickup');
+        _onSearchChanged(_pickupController.text);
+      }
+    });
+
+    _dropFocusNode.addListener(() {
+      if (_dropFocusNode.hasFocus) {
+        setState(() => _activeField = 'drop');
+        _onSearchChanged(_dropController.text);
+      }
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_activeField == 'pickup') {
+        _pickupFocusNode.requestFocus();
+      } else {
+        _dropFocusNode.requestFocus();
+      }
+    });
   }
 
   /// Load nearby places as default suggestions
   Future<void> _loadNearbyPlaces() async {
     final rideState = ref.read(rideViewModelProvider);
-    if (rideState.pickup != null) {
+    final refLocation = rideState.pickup ?? rideState.drop;
+    if (refLocation != null) {
       final places = await _placesService.getNearbyPlaces(
-        rideState.pickup!.latitude,
-        rideState.pickup!.longitude,
+        refLocation.latitude,
+        refLocation.longitude,
       );
       if (mounted) {
         setState(() {
@@ -51,7 +95,7 @@ class _SearchDestinationViewState extends ConsumerState<SearchDestinationView> {
     }
   }
 
-  /// Debounced search — waits 400ms after user stops typing
+  /// Debounced search — waits 350ms after user stops typing
   void _onSearchChanged(String query) {
     _debounce?.cancel();
 
@@ -65,12 +109,13 @@ class _SearchDestinationViewState extends ConsumerState<SearchDestinationView> {
 
     setState(() => _isSearching = true);
 
-    _debounce = Timer(const Duration(milliseconds: 400), () async {
+    _debounce = Timer(const Duration(milliseconds: 350), () async {
       final rideState = ref.read(rideViewModelProvider);
+      final refLocation = rideState.pickup ?? rideState.drop;
       final predictions = await _placesService.searchPlaces(
         query,
-        lat: rideState.pickup?.latitude,
-        lng: rideState.pickup?.longitude,
+        lat: refLocation?.latitude,
+        lng: refLocation?.longitude,
       );
 
       if (mounted) {
@@ -82,22 +127,37 @@ class _SearchDestinationViewState extends ConsumerState<SearchDestinationView> {
     });
   }
 
-  /// When user taps a prediction, fetch its coordinates and navigate
+  /// When user taps a prediction, fetch details and update pickup or dropoff
   Future<void> _selectPrediction(PlacePrediction prediction) async {
-    // Show a loading indicator
     setState(() => _isSearching = true);
 
     final details = await _placesService.getPlaceDetails(prediction.placeId);
 
     if (details != null && mounted) {
-      ref.read(rideViewModelProvider.notifier).setDrop(
-        RideLocation(
-          latitude: details.latitude,
-          longitude: details.longitude,
-          address: '${details.name}, ${details.address}',
-        ),
+      final newLocation = RideLocation(
+        latitude: details.latitude,
+        longitude: details.longitude,
+        address: '${details.name}, ${details.address}',
       );
-      context.push('/confirm-ride');
+
+      final notifier = ref.read(rideViewModelProvider.notifier);
+      if (_activeField == 'pickup') {
+        notifier.setPickup(newLocation);
+        _pickupController.text = newLocation.address ?? '';
+      } else {
+        notifier.setDrop(newLocation);
+        _dropController.text = newLocation.address ?? '';
+      }
+
+      // Re-estimate fare
+      notifier.estimateFare();
+
+      // Navigate appropriately
+      if (widget.fromConfirm && context.canPop()) {
+        context.pop();
+      } else {
+        context.push('/confirm-ride');
+      }
     } else if (mounted) {
       setState(() => _isSearching = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -109,23 +169,57 @@ class _SearchDestinationViewState extends ConsumerState<SearchDestinationView> {
     }
   }
 
-  /// When user taps a nearby place (already has lat/lng)
+  /// When user taps a nearby place
   void _selectNearbyPlace(PlaceDetails place) {
-    ref.read(rideViewModelProvider.notifier).setDrop(
-      RideLocation(
-        latitude: place.latitude,
-        longitude: place.longitude,
-        address: '${place.name}, ${place.address}',
-      ),
+    final newLocation = RideLocation(
+      latitude: place.latitude,
+      longitude: place.longitude,
+      address: '${place.name}, ${place.address}',
     );
-    context.push('/confirm-ride');
+
+    final notifier = ref.read(rideViewModelProvider.notifier);
+    if (_activeField == 'pickup') {
+      notifier.setPickup(newLocation);
+      _pickupController.text = newLocation.address ?? '';
+    } else {
+      notifier.setDrop(newLocation);
+      _dropController.text = newLocation.address ?? '';
+    }
+
+    // Re-estimate fare
+    notifier.estimateFare();
+
+    if (widget.fromConfirm && context.canPop()) {
+      context.pop();
+    } else {
+      context.push('/confirm-ride');
+    }
+  }
+
+  /// Swap pickup and dropoff locations
+  void _swapLocations() {
+    final rideState = ref.read(rideViewModelProvider);
+    final currentPickup = rideState.pickup;
+    final currentDrop = rideState.drop;
+
+    if (currentPickup != null && currentDrop != null) {
+      final notifier = ref.read(rideViewModelProvider.notifier);
+      notifier.setPickup(currentDrop);
+      notifier.setDrop(currentPickup);
+
+      setState(() {
+        _pickupController.text = currentDrop.address ?? '';
+        _dropController.text = currentPickup.address ?? '';
+      });
+
+      notifier.estimateFare();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final rideState = ref.watch(rideViewModelProvider);
-    final pickupAddress = rideState.pickup?.address ?? 'Current Location';
-    final hasQuery = _controller.text.trim().isNotEmpty;
+    final activeController = _activeField == 'pickup' ? _pickupController : _dropController;
+    final hasQuery = activeController.text.trim().isNotEmpty;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -138,10 +232,13 @@ class _SearchDestinationViewState extends ConsumerState<SearchDestinationView> {
               child: Row(
                 children: [
                   GestureDetector(
-                    onTap: () { if (context.canPop()) context.pop(); },
+                    onTap: () {
+                      if (context.canPop()) context.pop();
+                    },
                     child: Container(
-                      width: 40, height: 40,
-                      decoration: BoxDecoration(
+                      width: 40,
+                      height: 40,
+                      decoration: const BoxDecoration(
                         color: AppColors.lightPink,
                         shape: BoxShape.circle,
                       ),
@@ -149,14 +246,17 @@ class _SearchDestinationViewState extends ConsumerState<SearchDestinationView> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Text('Set Destination', style: AppTextStyles.actionTitle),
+                  Text(
+                    _activeField == 'pickup' ? 'Set Pickup Location' : 'Set Drop Location',
+                    style: AppTextStyles.actionTitle,
+                  ),
                 ],
               ),
             ),
 
             const SizedBox(height: 16),
 
-            // ── Location Input Fields ──
+            // ── Location Input Fields (Rapido Style) ──
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Container(
@@ -167,86 +267,131 @@ class _SearchDestinationViewState extends ConsumerState<SearchDestinationView> {
                   border: Border.all(color: AppColors.dividerColor),
                   boxShadow: [BoxShadow(color: AppColors.cardShadow, blurRadius: 6)],
                 ),
-                child: Column(
+                child: Row(
                   children: [
-                    // Pickup (read-only)
-                    Row(
+                    // Column with dots & connector line
+                    Column(
                       children: [
+                        // Pickup dot (Green)
                         Container(
-                          width: 12, height: 12,
+                          width: 12,
+                          height: 12,
                           decoration: BoxDecoration(
-                            color: Colors.green.shade600,
+                            color: const Color(0xFF2E7D32),
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.green.shade200, width: 2),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Pickup', style: TextStyle(fontSize: 10, color: AppColors.lightGray, fontWeight: FontWeight.w500)),
-                              Text(pickupAddress, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.darkText), maxLines: 1, overflow: TextOverflow.ellipsis),
-                            ],
+                        // Connector line
+                        Container(
+                          width: 2,
+                          height: 24,
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          color: AppColors.lightGray.withValues(alpha: 0.3),
+                        ),
+                        // Dropoff dot (Red/Pink)
+                        Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE53935),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.red.shade200, width: 2),
                           ),
                         ),
                       ],
                     ),
 
-                    // Dotted line
-                    Padding(
-                      padding: const EdgeInsets.only(left: 5),
-                      child: Row(
+                    const SizedBox(width: 12),
+
+                    // Inputs Column
+                    Expanded(
+                      child: Column(
                         children: [
-                          Column(
-                            children: List.generate(3, (_) => Container(
-                              width: 2, height: 4,
-                              margin: const EdgeInsets.symmetric(vertical: 1),
-                              decoration: BoxDecoration(color: AppColors.lightGray.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(1)),
-                            )),
+                          // Pickup Field
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: _activeField == 'pickup' ? AppColors.lightPink : Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: TextField(
+                              controller: _pickupController,
+                              focusNode: _pickupFocusNode,
+                              onChanged: _onSearchChanged,
+                              style: const TextStyle(fontSize: 14, color: AppColors.darkText, fontWeight: FontWeight.w600),
+                              decoration: InputDecoration(
+                                hintText: 'Search pickup location...',
+                                hintStyle: const TextStyle(color: AppColors.lightGray, fontSize: 13, fontWeight: FontWeight.w400),
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                                suffixIcon: _activeField == 'pickup' && _pickupController.text.isNotEmpty
+                                    ? GestureDetector(
+                                        onTap: () {
+                                          _pickupController.clear();
+                                          _onSearchChanged('');
+                                        },
+                                        child: const Icon(Icons.close, color: AppColors.lightGray, size: 18),
+                                      )
+                                    : null,
+                              ),
+                            ),
                           ),
-                          const Expanded(child: Divider(height: 18, indent: 16, color: Color(0xFFEEEEEE))),
+
+                          const Divider(height: 12, color: Color(0xFFEEEEEE)),
+
+                          // Dropoff Field
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: _activeField == 'drop' ? AppColors.lightPink : Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: TextField(
+                              controller: _dropController,
+                              focusNode: _dropFocusNode,
+                              onChanged: _onSearchChanged,
+                              style: const TextStyle(fontSize: 14, color: AppColors.darkText, fontWeight: FontWeight.w600),
+                              decoration: InputDecoration(
+                                hintText: 'Search drop location...',
+                                hintStyle: const TextStyle(color: AppColors.lightGray, fontSize: 13, fontWeight: FontWeight.w400),
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                                suffixIcon: _activeField == 'drop' && _dropController.text.isNotEmpty
+                                    ? GestureDetector(
+                                        onTap: () {
+                                          _dropController.clear();
+                                          _onSearchChanged('');
+                                        },
+                                        child: const Icon(Icons.close, color: AppColors.lightGray, size: 18),
+                                      )
+                                    : null,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
 
-                    // Drop search field
-                    Row(
-                      children: [
-                        Container(
-                          width: 12, height: 12,
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryPink,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: AppColors.borderPink, width: 2),
-                          ),
+                    const SizedBox(width: 8),
+
+                    // Swap Button
+                    GestureDetector(
+                      onTap: _swapLocations,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF0F0F5),
+                          shape: BoxShape.circle,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            controller: _controller,
-                            autofocus: true,
-                            onChanged: _onSearchChanged,
-                            style: const TextStyle(fontSize: 15, color: AppColors.darkText, fontWeight: FontWeight.w500),
-                            decoration: InputDecoration(
-                              hintText: 'Search for a place...',
-                              hintStyle: const TextStyle(color: AppColors.lightGray, fontWeight: FontWeight.w400),
-                              border: InputBorder.none,
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                              suffixIcon: hasQuery
-                                  ? GestureDetector(
-                                      onTap: () {
-                                        _controller.clear();
-                                        _onSearchChanged('');
-                                      },
-                                      child: const Icon(Icons.close, color: AppColors.lightGray, size: 18),
-                                    )
-                                  : null,
-                            ),
-                          ),
+                        child: const Icon(
+                          Icons.swap_vert,
+                          color: AppColors.primaryPink,
+                          size: 20,
                         ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
@@ -262,7 +407,7 @@ class _SearchDestinationViewState extends ConsumerState<SearchDestinationView> {
                 child: Center(child: CircularProgressIndicator(color: AppColors.primaryPink, strokeWidth: 2)),
               ),
 
-            // ── Results ──
+            // ── Results List ──
             Expanded(
               child: hasQuery
                   ? _buildSearchResults()
@@ -281,9 +426,9 @@ class _SearchDestinationViewState extends ConsumerState<SearchDestinationView> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off, size: 52, color: AppColors.borderPink),
+            Icon(Icons.search_off, size: 48, color: AppColors.borderPink),
             const SizedBox(height: 12),
-            const Text('No places found', style: TextStyle(color: AppColors.lightGray, fontSize: 15)),
+            const Text('No places found', style: TextStyle(color: AppColors.lightGray, fontSize: 14)),
             const SizedBox(height: 4),
             const Text('Try a different search term', style: TextStyle(color: AppColors.lightGray, fontSize: 12)),
           ],
@@ -300,22 +445,29 @@ class _SearchDestinationViewState extends ConsumerState<SearchDestinationView> {
         return ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
           leading: Container(
-            width: 42, height: 42,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: AppColors.lightPink,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.location_on, color: AppColors.primaryPink, size: 22),
+            child: Icon(
+              _activeField == 'pickup' ? Icons.my_location : Icons.location_on,
+              color: AppColors.primaryPink,
+              size: 20,
+            ),
           ),
           title: Text(
             prediction.mainText,
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.darkText),
-            maxLines: 1, overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           subtitle: Text(
             prediction.secondaryText,
             style: const TextStyle(fontSize: 12, color: AppColors.lightGray),
-            maxLines: 1, overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           trailing: const Icon(Icons.north_west, color: AppColors.lightGray, size: 16),
           onTap: () => _selectPrediction(prediction),
@@ -331,9 +483,12 @@ class _SearchDestinationViewState extends ConsumerState<SearchDestinationView> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.near_me, size: 52, color: AppColors.borderPink),
+            Icon(Icons.near_me, size: 48, color: AppColors.borderPink),
             const SizedBox(height: 12),
-            const Text('Type to search for your destination', style: TextStyle(color: AppColors.lightGray, fontSize: 14)),
+            Text(
+              _activeField == 'pickup' ? 'Type to search for pickup location' : 'Type to search for drop location',
+              style: const TextStyle(color: AppColors.lightGray, fontSize: 14),
+            ),
           ],
         ),
       );
@@ -345,32 +500,35 @@ class _SearchDestinationViewState extends ConsumerState<SearchDestinationView> {
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(
-            children: [
+            children: const [
               Icon(Icons.near_me, color: AppColors.primaryPink, size: 16),
-              const SizedBox(width: 6),
-              const Text('Nearby suggestions', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.darkText)),
+              SizedBox(width: 6),
+              Text('Nearby suggestions', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.darkText)),
             ],
           ),
         ),
         ..._recentPlaces.map((place) => ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
           leading: Container(
-            width: 42, height: 42,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: AppColors.lightPink,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.place_outlined, color: AppColors.primaryPink, size: 22),
+            child: const Icon(Icons.place_outlined, color: AppColors.primaryPink, size: 20),
           ),
           title: Text(
             place.name,
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.darkText),
-            maxLines: 1, overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           subtitle: Text(
             place.address,
             style: const TextStyle(fontSize: 12, color: AppColors.lightGray),
-            maxLines: 1, overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           trailing: const Icon(Icons.arrow_forward_ios, color: AppColors.lightGray, size: 14),
           onTap: () => _selectNearbyPlace(place),
@@ -382,7 +540,10 @@ class _SearchDestinationViewState extends ConsumerState<SearchDestinationView> {
   @override
   void dispose() {
     _debounce?.cancel();
-    _controller.dispose();
+    _pickupFocusNode.dispose();
+    _dropFocusNode.dispose();
+    _pickupController.dispose();
+    _dropController.dispose();
     super.dispose();
   }
 }
