@@ -484,14 +484,14 @@ class _ConfirmRideViewState extends ConsumerState<ConfirmRideView> {
                       children: [
                         const Text('Payment Method', style: TextStyle(fontSize: 11, color: AppColors.lightGray)),
                         Text(
-                          state.paymentMethod == 'cash' ? 'Cash' : 'Wallet',
+                          state.paymentMethod == 'cash' ? 'Cash' : 'Online',
                           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
                     const Spacer(),
                     OutlinedButton(
-                      onPressed: () => notifier.setPaymentMethod(state.paymentMethod == 'cash' ? 'wallet' : 'cash'),
+                      onPressed: () => notifier.setPaymentMethod(state.paymentMethod == 'cash' ? 'online' : 'cash'),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: AppColors.primaryPink),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

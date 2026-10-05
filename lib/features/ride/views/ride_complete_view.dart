@@ -5,6 +5,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/woosh_gradient_button.dart';
 import '../../ride/view_models/ride_view_model.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Ride Complete View — trip summary + star rating
 class RideCompleteView extends ConsumerStatefulWidget {
@@ -18,13 +20,48 @@ class RideCompleteView extends ConsumerStatefulWidget {
 class _RideCompleteViewState extends ConsumerState<RideCompleteView> {
   int _selectedRating = 0;
   bool _rated = false;
+  late Razorpay _razorpay;
 
   @override
   void initState() {
     super.initState();
+    _razorpay = Razorpay();
+    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(rideViewModelProvider.notifier).getRideDetails(widget.rideId);
     });
+  }
+
+  @override
+  void dispose() {
+    _razorpay.clear();
+    super.dispose();
+  }
+
+  void _handlePaymentSuccess(PaymentSuccessResponse response) async {
+    final success = await ref.read(rideViewModelProvider.notifier).verifyPayment(
+      widget.rideId,
+      response.orderId ?? '',
+      response.paymentId ?? '',
+      response.signature ?? '',
+    );
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment Successful!')));
+    }
+  }
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Payment Failed: ${response.message}')));
+    }
+  }
+
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('External Wallet Selected: ${response.walletName}')));
+    }
   }
 
   @override
@@ -78,12 +115,43 @@ class _RideCompleteViewState extends ConsumerState<RideCompleteView> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      ride?.paymentMethod == 'cash' ? '💵 Paid by Cash' : '👛 Paid by Wallet',
+                      ride?.paymentStatus == 'paid' 
+                        ? '✅ Paid Online' 
+                        : (ride?.paymentMethod == 'cash' ? '💵 Cash to be collected' : '👛 Pay via Wallet'),
                       style: const TextStyle(color: Colors.white70, fontSize: 13),
                     ),
                   ],
                 ),
               ),
+
+              const SizedBox(height: 12),
+              
+              if (ride?.paymentStatus != 'paid')
+                WooshGradientButton(
+                  text: 'Pay Online',
+                  isLoading: state.isLoading,
+                  onPressed: () async {
+                    final order = await ref.read(rideViewModelProvider.notifier).createPaymentOrder(widget.rideId);
+                    if (order != null) {
+                      final options = {
+                        'key': dotenv.env['RAZORPAY_KEY_ID'] ?? '', // Should be from env in production
+                        'amount': order['amount'],
+                        'name': 'Woosh',
+                        'description': 'Ride Payment',
+                        'order_id': order['id'],
+                        'prefill': {
+                          'contact': ride?.rider?.phoneNumber ?? '',
+                          'email': 'passenger@woosh.in'
+                        }
+                      };
+                      try {
+                        _razorpay.open(options);
+                      } catch (e) {
+                        debugPrint('Error: $e');
+                      }
+                    }
+                  },
+                ),
 
               const SizedBox(height: 20),
 

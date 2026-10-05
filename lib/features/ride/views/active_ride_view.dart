@@ -8,6 +8,8 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/woosh_gradient_button.dart';
 import '../../ride/view_models/ride_view_model.dart';
 import '../../../data/services/socket_service.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Active Ride View — live tracking + SOS + ride info
 class ActiveRideView extends ConsumerStatefulWidget {
@@ -21,15 +23,45 @@ class ActiveRideView extends ConsumerStatefulWidget {
 class _ActiveRideViewState extends ConsumerState<ActiveRideView> {
   GoogleMapController? _mapController;
   LatLng? _liveRiderPosition;
+  late Razorpay _razorpay;
 
   @override
   void initState() {
     super.initState();
+    _razorpay = Razorpay();
+    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(rideViewModelProvider.notifier).startPolling(widget.rideId);
     });
 
     _initSocket();
+  }
+
+
+  void _handlePaymentSuccess(PaymentSuccessResponse response) async {
+    final success = await ref.read(rideViewModelProvider.notifier).verifyPayment(
+      widget.rideId,
+      response.orderId ?? '',
+      response.paymentId ?? '',
+      response.signature ?? '',
+    );
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment Successful!')));
+    }
+  }
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Payment Failed: ${response.message}')));
+    }
+  }
+
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('External Wallet Selected: ${response.walletName}')));
+    }
   }
 
   void _initSocket() {
@@ -288,6 +320,41 @@ class _ActiveRideViewState extends ConsumerState<ActiveRideView> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  // Pay Online Button (if not paid)
+                  if (ride?.paymentStatus != 'paid')
+                    WooshGradientButton(
+                      text: 'Pay Online',
+                      isLoading: state.isLoading,
+                      onPressed: () async {
+                        final order = await ref.read(rideViewModelProvider.notifier).createPaymentOrder(widget.rideId);
+                        if (order != null) {
+                          final options = {
+                            'key': dotenv.env['RAZORPAY_KEY_ID'] ?? '', // Should be from env in production
+                            'amount': order['amount'],
+                            'name': 'Woosh',
+                            'description': 'Ride Payment',
+                            'order_id': order['id'],
+                            'prefill': {
+                              'contact': ride?.rider?.phoneNumber ?? '',
+                              'email': 'passenger@woosh.in'
+                            }
+                          };
+                          try {
+                            _razorpay.open(options);
+                          } catch (e) {
+                            debugPrint('Error: $e');
+                          }
+                        }
+                      },
+                    )
+                  else
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(color: AppColors.successGreen.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                      child: const Text('✅ Paid Online', style: TextStyle(color: AppColors.successGreen, fontWeight: FontWeight.bold)),
+                    ),
                 ],
               ),
             ),
@@ -340,6 +407,7 @@ class _ActiveRideViewState extends ConsumerState<ActiveRideView> {
   @override
   void dispose() {
     _mapController?.dispose();
+    _razorpay.clear();
     ref.read(rideViewModelProvider.notifier).stopPolling();
     super.dispose();
   }

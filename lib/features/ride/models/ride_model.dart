@@ -99,6 +99,7 @@ class RideModel {
   final double distanceKm;
   final int durationMinutes;
   final String paymentMethod;
+  final String paymentStatus;
   final RiderInfo? rider;
   final String? rideOtp;
   final DateTime? createdAt;
@@ -112,6 +113,7 @@ class RideModel {
     required this.distanceKm,
     required this.durationMinutes,
     required this.paymentMethod,
+    required this.paymentStatus,
     this.rider,
     this.rideOtp,
     this.createdAt,
@@ -127,6 +129,7 @@ class RideModel {
       distanceKm: (json['distanceKm'] as num? ?? 0).toDouble(),
       durationMinutes: (json['durationMinutes'] as num? ?? 0).toInt(),
       paymentMethod: (json['paymentMethod'] ?? 'cash').toString(),
+      paymentStatus: (json['paymentStatus'] ?? 'pending').toString(),
       rider: json['rider'] != null ? RiderInfo.fromJson(json['rider'] as Map<String, dynamic>) : null,
       rideOtp: json['otp']?.toString() ?? json['rideOtp']?.toString(),
       createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt'].toString()) : null,

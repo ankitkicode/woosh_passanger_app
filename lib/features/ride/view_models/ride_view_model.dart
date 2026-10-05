@@ -10,7 +10,7 @@ class RideState {
   final RideLocation? drop;
   final FareEstimate? fareEstimate;
   final RideModel? activeRide;
-  final String paymentMethod; // 'cash' or 'wallet'
+  final String paymentMethod; // 'cash' or 'online'
   final bool isLoading;
   final String? error;
 
@@ -166,6 +166,40 @@ class RideViewModel extends StateNotifier<RideState> {
       final api = _ref.read(apiClientProvider);
       await api.post('/ride/$rideId/sos', data: {});
     } catch (_) {}
+  }
+
+  /// Create Razorpay order
+  Future<Map<String, dynamic>?> createPaymentOrder(String rideId) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final api = _ref.read(apiClientProvider);
+      final response = await api.post('/payment/ride/$rideId/order');
+      state = state.copyWith(isLoading: false);
+      return response.data['data']['order'] as Map<String, dynamic>;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: _extractError(e));
+      return null;
+    }
+  }
+
+  /// Verify Razorpay payment
+  Future<bool> verifyPayment(String rideId, String orderId, String paymentId, String signature) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final api = _ref.read(apiClientProvider);
+      await api.post('/payment/ride/$rideId/verify', data: {
+        'razorpay_order_id': orderId,
+        'razorpay_payment_id': paymentId,
+        'razorpay_signature': signature,
+      });
+      // Optionally refresh ride details
+      await getRideDetails(rideId);
+      state = state.copyWith(isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: _extractError(e));
+      return false;
+    }
   }
 
   void clearRide() {
