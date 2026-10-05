@@ -58,6 +58,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  config:
+    enable-uiscene-migration: false
   assets:
     - assets/
     - .env
