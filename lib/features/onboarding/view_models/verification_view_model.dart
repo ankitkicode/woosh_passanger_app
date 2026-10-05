@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../providers/di_providers.dart';
@@ -39,17 +42,34 @@ class VerificationViewModel extends StateNotifier<VerificationState> {
   VerificationViewModel(this._ref) : super(const VerificationState());
 
   Future<void> takeSelfie() async {
-    final XFile? photo = await _picker.pickImage(
-      source: ImageSource.camera,
-      preferredCameraDevice: CameraDevice.front,
-      imageQuality: 50,
-      maxWidth: 800,
-      maxHeight: 800,
-    );
+    try {
+      // Simulators have no camera — fall back to gallery so devs can still test the flow.
+      final bool isSimulator = !kIsWeb && Platform.isIOS && !_hasRealCamera();
 
-    if (photo != null) {
-      state = state.copyWith(selfiePath: photo.path, error: null);
+      final XFile? photo = await _picker.pickImage(
+        source: isSimulator ? ImageSource.gallery : ImageSource.camera,
+        preferredCameraDevice: CameraDevice.front,
+        imageQuality: 50,
+        maxWidth: 800,
+        maxHeight: 800,
+      );
+
+      if (photo != null) {
+        state = state.copyWith(selfiePath: photo.path, error: null);
+      }
+    } catch (e) {
+      state = state.copyWith(
+        error: 'Camera is not available on this device.',
+      );
     }
+  }
+
+  /// Returns false when running on an iOS simulator (no real camera hardware).
+  bool _hasRealCamera() {
+    // On a real device the SIMULATOR_DEVICE_NAME env var is absent.
+    // image_picker throws a PlatformException with code 'camera_access_denied'
+    // or simply returns null on simulators; we use the env var as a lightweight check.
+    return !Platform.environment.containsKey('SIMULATOR_DEVICE_NAME');
   }
 
   Future<void> verify() async {
