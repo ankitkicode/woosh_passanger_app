@@ -30,8 +30,12 @@
 	<string>Woosh needs access to your camera to verify that you are a woman for safety purposes.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Woosh needs access to your location to provide a safe ride tracking experience.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Woosh needs access to your location to provide a safe ride tracking experience.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Woosh needs access to your location to find nearby riders and set your pickup point.</string>
+	<key>io.flutter.embedded_views_preview</key>
+	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Woosh needs access to your microphone when taking a video for verification.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

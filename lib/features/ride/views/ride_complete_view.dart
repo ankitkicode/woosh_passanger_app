@@ -298,15 +298,28 @@ class _DetailRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: color, size: 14),
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Icon(icon, color: color, size: 14),
+        ),
         const SizedBox(width: 10),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: const TextStyle(fontSize: 11, color: AppColors.lightGray)),
-            Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.darkText)),
-          ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(fontSize: 11, color: AppColors.lightGray)),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.darkText,
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );

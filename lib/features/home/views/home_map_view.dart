@@ -11,6 +11,7 @@ import '../../ride/view_models/ride_view_model.dart';
 import '../../ride/models/ride_model.dart';
 import '../../../data/services/socket_service.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/di_providers.dart';
 
 // Google Maps API Key — same as AndroidManifest.xml
 const String _kGoogleApiKey = 'AIzaSyCfmd3W3DPh3jYOeYx41Bva9GIxCmpo7UY';
@@ -22,13 +23,18 @@ class HomeMapView extends ConsumerStatefulWidget {
   ConsumerState<HomeMapView> createState() => _HomeMapViewState();
 }
 
-class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderStateMixin {
+class _HomeMapViewState extends ConsumerState<HomeMapView>
+    with TickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   GoogleMapController? _mapController;
   LatLng _currentPosition = const LatLng(23.2599, 77.4126); // Bhopal default
   bool _locationLoaded = false;
   String _currentAddress = 'Fetching location...';
   bool _fetchingAddress = true;
+
+  bool _isServiceAvailable = true;
+  bool _citiesLoaded = false;
+  List<dynamic> _cities = [];
 
   late final PlacesService _placesService;
   List<PlaceDetails> _nearbyPlaces = [];
@@ -38,8 +44,98 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
   void initState() {
     super.initState();
     _placesService = PlacesService(_kGoogleApiKey);
+    _fetchCities();
     _getCurrentLocation();
     _initSocket();
+  }
+
+  Future<void> _fetchCities() async {
+    try {
+      final api = ref.read(apiClientProvider);
+      final response = await api.get('/cities');
+      if (response.data['success'] == true) {
+        _cities = response.data['data'];
+        _citiesLoaded = true;
+        if (mounted && _locationLoaded) {
+          _checkServiceAvailability(
+            _currentPosition.latitude,
+            _currentPosition.longitude,
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Cities fetch error: $e');
+    }
+  }
+
+  void _checkServiceAvailability(double lat, double lng) {
+    if (!_citiesLoaded || _cities.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _isServiceAvailable = false;
+        });
+      }
+      return;
+    }
+
+    bool available = false;
+    for (var city in _cities) {
+      if (city['isActive'] == true) {
+        double cLat = (city['latitude'] ?? 0.0).toDouble();
+        double cLng = (city['longitude'] ?? 0.0).toDouble();
+        double cRad = (city['serviceRadius'] ?? 0.0).toDouble();
+
+        double distanceToCity = Geolocator.distanceBetween(
+          lat,
+          lng,
+          cLat,
+          cLng,
+        );
+        if (distanceToCity <= cRad * 1000) {
+          available = true;
+          break;
+        }
+
+        if (city['areas'] != null) {
+          for (var area in city['areas']) {
+            if (area['isActive'] == true) {
+              double aLat = (area['latitude'] ?? 0.0).toDouble();
+              double aLng = (area['longitude'] ?? 0.0).toDouble();
+              double aRad = (area['serviceRadius'] ?? 0.0).toDouble();
+
+              double distanceToArea = Geolocator.distanceBetween(
+                lat,
+                lng,
+                aLat,
+                aLng,
+              );
+              if (distanceToArea <= aRad * 1000) {
+                available = true;
+                break;
+              }
+            }
+          }
+        }
+        if (available) break;
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _isServiceAvailable = available;
+      });
+
+      if (!available) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'In this area service is not available. Coming soon.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _initSocket() {
@@ -54,7 +150,9 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
         _riderMarkers[riderId] = Marker(
           markerId: MarkerId(riderId),
           position: LatLng(lat, lng),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueMagenta),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueMagenta,
+          ),
           infoWindow: const InfoWindow(title: 'Woosh Rider'),
         );
       });
@@ -72,7 +170,9 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
           _riderMarkers[riderId] = Marker(
             markerId: MarkerId(riderId),
             position: LatLng(data['latitude'], data['longitude']),
-            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueMagenta),
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+              BitmapDescriptor.hueMagenta,
+            ),
             infoWindow: const InfoWindow(title: 'Woosh Rider'),
           );
         }
@@ -124,7 +224,9 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
       }
 
       final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
       );
 
       setState(() {
@@ -132,12 +234,24 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
         _locationLoaded = true;
       });
 
-      _mapController?.animateCamera(CameraUpdate.newLatLngZoom(_currentPosition, 15));
+      if (_citiesLoaded) {
+        _checkServiceAvailability(position.latitude, position.longitude);
+      }
+
+      _mapController?.animateCamera(
+        CameraUpdate.newLatLngZoom(_currentPosition, 15),
+      );
 
       // Set pickup in ride state
-      ref.read(rideViewModelProvider.notifier).setPickup(
-        RideLocation(latitude: position.latitude, longitude: position.longitude, address: 'Current Location'),
-      );
+      ref
+          .read(rideViewModelProvider.notifier)
+          .setPickup(
+            RideLocation(
+              latitude: position.latitude,
+              longitude: position.longitude,
+              address: 'Current Location',
+            ),
+          );
 
       // Reverse geocode to get actual address
       final address = await _placesService.getAddressFromCoordinates(
@@ -152,9 +266,15 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
         });
 
         // Update pickup with real address
-        ref.read(rideViewModelProvider.notifier).setPickup(
-          RideLocation(latitude: position.latitude, longitude: position.longitude, address: address),
-        );
+        ref
+            .read(rideViewModelProvider.notifier)
+            .setPickup(
+              RideLocation(
+                latitude: position.latitude,
+                longitude: position.longitude,
+                address: address,
+              ),
+            );
       }
 
       // Load nearby places for suggestions
@@ -185,9 +305,11 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
     final rideState = ref.watch(rideViewModelProvider);
     final hasActiveRide = rideState.activeRide != null;
 
-    final markers = hasActiveRide ? <Marker>{
-      // Original static markers or just current ride logic if needed
-    } : _riderMarkers.values.toSet();
+    final markers = hasActiveRide
+        ? <Marker>{
+            // Original static markers or just current ride logic if needed
+          }
+        : _riderMarkers.values.toSet();
 
     return Scaffold(
       key: _scaffoldKey,
@@ -196,7 +318,10 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
         children: [
           // ── Full-screen Google Map ──
           GoogleMap(
-            initialCameraPosition: CameraPosition(target: _currentPosition, zoom: 14),
+            initialCameraPosition: CameraPosition(
+              target: _currentPosition,
+              zoom: 14,
+            ),
             myLocationEnabled: true,
             myLocationButtonEnabled: false,
             zoomControlsEnabled: false,
@@ -205,7 +330,9 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
             onMapCreated: (c) {
               _mapController = c;
               if (_locationLoaded) {
-                c.animateCamera(CameraUpdate.newLatLngZoom(_currentPosition, 15));
+                c.animateCamera(
+                  CameraUpdate.newLatLngZoom(_currentPosition, 15),
+                );
               }
             },
           ),
@@ -220,22 +347,39 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-
-
-
                       Container(
-                        width: 40, height: 40,
+                        width: 40,
+                        height: 40,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 6)],
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 6,
+                            ),
+                          ],
                         ),
                         child: Stack(
                           children: [
-                            const Center(child: Icon(Icons.notifications_outlined, color: AppColors.darkText, size: 22)),
+                            const Center(
+                              child: Icon(
+                                Icons.notifications_outlined,
+                                color: AppColors.darkText,
+                                size: 22,
+                              ),
+                            ),
                             Positioned(
-                              top: 8, right: 8,
-                              child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.primaryPink, shape: BoxShape.circle)),
+                              top: 8,
+                              right: 8,
+                              child: Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.primaryPink,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -245,22 +389,45 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
                   const SizedBox(height: 10),
                   // Safety banner
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8)],
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 8,
+                        ),
+                      ],
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          width: 28, height: 28,
-                          decoration: BoxDecoration(color: AppColors.lightPink, shape: BoxShape.circle),
-                          child: const Icon(Icons.verified_user, color: AppColors.primaryPink, size: 16),
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: AppColors.lightPink,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.verified_user,
+                            color: AppColors.primaryPink,
+                            size: 16,
+                          ),
                         ),
                         const SizedBox(width: 8),
-                        const Text('Ride with\nverified women riders', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, height: 1.3)),
+                        const Text(
+                          'Ride with\nverified women riders',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            height: 1.3,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -276,13 +443,23 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
             child: GestureDetector(
               onTap: _getCurrentLocation,
               child: Container(
-                width: 48, height: 48,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 10)],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 10,
+                    ),
+                  ],
                 ),
-                child: const Icon(Icons.my_location, color: AppColors.primaryPink, size: 24),
+                child: const Icon(
+                  Icons.my_location,
+                  color: AppColors.primaryPink,
+                  size: 24,
+                ),
               ),
             ),
           ),
@@ -297,7 +474,13 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
                 decoration: const BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                  boxShadow: [BoxShadow(color: Color(0x1A000000), blurRadius: 20, offset: Offset(0, -4))],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x1A000000),
+                      blurRadius: 20,
+                      offset: Offset(0, -4),
+                    ),
+                  ],
                 ),
                 child: ListView(
                   controller: scrollController,
@@ -306,14 +489,31 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
                     // Handle
                     Center(
                       child: Container(
-                        width: 40, height: 4,
-                        decoration: BoxDecoration(color: AppColors.primaryPink.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(2)),
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryPink.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
 
-                    const Text('Where are you going?', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.darkText)),
-                    const Text('Book your ride in just a few taps', style: TextStyle(fontSize: 13, color: AppColors.lightGray)),
+                    const Text(
+                      'Where are you going?',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.darkText,
+                      ),
+                    ),
+                    const Text(
+                      'Book your ride in just a few taps',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.lightGray,
+                      ),
+                    ),
                     const SizedBox(height: 16),
 
                     // Pickup + Drop input card
@@ -323,7 +523,9 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: AppColors.dividerColor),
-                        boxShadow: [BoxShadow(color: AppColors.cardShadow, blurRadius: 6)],
+                        boxShadow: [
+                          BoxShadow(color: AppColors.cardShadow, blurRadius: 6),
+                        ],
                       ),
                       child: Column(
                         children: [
@@ -335,34 +537,62 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
                             child: Row(
                               children: [
                                 Container(
-                                  width: 12, height: 12,
+                                  width: 12,
+                                  height: 12,
                                   decoration: BoxDecoration(
                                     color: Colors.green.shade600,
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.green.shade200, width: 2),
+                                    border: Border.all(
+                                      color: Colors.green.shade200,
+                                      width: 2,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      const Text('Pickup location', style: TextStyle(fontSize: 10, color: AppColors.lightGray, fontWeight: FontWeight.w500)),
+                                      const Text(
+                                        'Pickup location',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: AppColors.lightGray,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
                                       const SizedBox(height: 2),
                                       _fetchingAddress
                                           ? Row(
                                               children: [
                                                 SizedBox(
-                                                  width: 12, height: 12,
-                                                  child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.primaryPink),
+                                                  width: 12,
+                                                  height: 12,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        strokeWidth: 1.5,
+                                                        color: AppColors
+                                                            .primaryPink,
+                                                      ),
                                                 ),
                                                 const SizedBox(width: 8),
-                                                const Text('Fetching your location...', style: TextStyle(fontSize: 13, color: AppColors.lightGray)),
+                                                const Text(
+                                                  'Fetching your location...',
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    color: AppColors.lightGray,
+                                                  ),
+                                                ),
                                               ],
                                             )
                                           : Text(
                                               _currentAddress,
-                                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.darkText),
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.darkText,
+                                              ),
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                             ),
@@ -377,7 +607,11 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
                                       color: AppColors.lightPink,
                                       borderRadius: BorderRadius.circular(8),
                                     ),
-                                    child: Icon(Icons.my_location, color: AppColors.primaryPink, size: 18),
+                                    child: Icon(
+                                      Icons.my_location,
+                                      color: AppColors.primaryPink,
+                                      size: 18,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -390,38 +624,87 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
                             child: Row(
                               children: [
                                 Column(
-                                  children: List.generate(3, (_) => Container(
-                                    width: 2, height: 4,
-                                    margin: const EdgeInsets.symmetric(vertical: 1),
-                                    decoration: BoxDecoration(color: AppColors.lightGray.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(1)),
-                                  )),
+                                  children: List.generate(
+                                    3,
+                                    (_) => Container(
+                                      width: 2,
+                                      height: 4,
+                                      margin: const EdgeInsets.symmetric(
+                                        vertical: 1,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.lightGray.withValues(
+                                          alpha: 0.5,
+                                        ),
+                                        borderRadius: BorderRadius.circular(1),
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                                const Expanded(child: Divider(height: 20, indent: 16, color: Color(0xFFEEEEEE))),
+                                const Expanded(
+                                  child: Divider(
+                                    height: 20,
+                                    indent: 16,
+                                    color: Color(0xFFEEEEEE),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
 
                           // Drop row — navigates to search
                           GestureDetector(
-                            onTap: () => context.push('/search'),
+                            onTap: () {
+                              if (!_isServiceAvailable) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'In this area service is not available. Coming soon.',
+                                    ),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                                return;
+                              }
+                              context.push('/search');
+                            },
                             child: Row(
                               children: [
                                 Container(
-                                  width: 12, height: 12,
+                                  width: 12,
+                                  height: 12,
                                   decoration: BoxDecoration(
                                     color: AppColors.primaryPink,
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: AppColors.borderPink, width: 2),
+                                    border: Border.all(
+                                      color: AppColors.borderPink,
+                                      width: 2,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: const [
-                                      Text('Drop location', style: TextStyle(fontSize: 10, color: AppColors.lightGray, fontWeight: FontWeight.w500)),
+                                      Text(
+                                        'Drop location',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: AppColors.lightGray,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
                                       SizedBox(height: 2),
-                                      Text('Where are you going?', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.lightGray)),
+                                      Text(
+                                        'Where are you going?',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                          color: AppColors.lightGray,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -431,7 +714,11 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
                                     color: AppColors.lightPink,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: const Icon(Icons.search, color: AppColors.primaryPink, size: 18),
+                                  child: const Icon(
+                                    Icons.search,
+                                    color: AppColors.primaryPink,
+                                    size: 18,
+                                  ),
                                 ),
                               ],
                             ),
@@ -443,17 +730,44 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
                     const SizedBox(height: 18),
 
                     // Quick options
-                    const Text('Quick options', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.darkText)),
+                    const Text(
+                      'Quick options',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.darkText,
+                      ),
+                    ),
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        _QuickOption(icon: Icons.home_filled, label: 'Home', color: AppColors.primaryPink, onTap: () {}),
+                        _QuickOption(
+                          icon: Icons.home_filled,
+                          label: 'Home',
+                          color: AppColors.primaryPink,
+                          onTap: () {},
+                        ),
                         const SizedBox(width: 10),
-                        _QuickOption(icon: Icons.work, label: 'Work', color: AppColors.primaryPink, onTap: () {}),
+                        _QuickOption(
+                          icon: Icons.work,
+                          label: 'Work',
+                          color: AppColors.primaryPink,
+                          onTap: () {},
+                        ),
                         const SizedBox(width: 10),
-                        _QuickOption(icon: Icons.school, label: 'College', color: AppColors.primaryPink, onTap: () {}),
+                        _QuickOption(
+                          icon: Icons.school,
+                          label: 'College',
+                          color: AppColors.primaryPink,
+                          onTap: () {},
+                        ),
                         const SizedBox(width: 10),
-                        _QuickOption(icon: Icons.more_horiz, label: 'Other', color: AppColors.primaryPink, onTap: () {}),
+                        _QuickOption(
+                          icon: Icons.more_horiz,
+                          label: 'Other',
+                          color: AppColors.primaryPink,
+                          onTap: () {},
+                        ),
                       ],
                     ),
 
@@ -461,7 +775,10 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
 
                     // Ride preferences
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.inputBackground,
                         borderRadius: BorderRadius.circular(12),
@@ -469,21 +786,45 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
                       child: Row(
                         children: [
                           Container(
-                            width: 28, height: 28,
-                            decoration: const BoxDecoration(color: AppColors.lightPink, shape: BoxShape.circle),
-                            child: const Icon(Icons.verified_user, color: AppColors.primaryPink, size: 16),
+                            width: 28,
+                            height: 28,
+                            decoration: const BoxDecoration(
+                              color: AppColors.lightPink,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.verified_user,
+                              color: AppColors.primaryPink,
+                              size: 16,
+                            ),
                           ),
                           const SizedBox(width: 10),
                           const Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Ride preferences', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                                Text('Women riders only', style: TextStyle(fontSize: 11, color: AppColors.lightGray)),
+                                Text(
+                                  'Ride preferences',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  'Women riders only',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.lightGray,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
-                          const Icon(Icons.chevron_right, color: AppColors.lightGray, size: 20),
+                          const Icon(
+                            Icons.chevron_right,
+                            color: AppColors.lightGray,
+                            size: 20,
+                          ),
                         ],
                       ),
                     ),
@@ -491,21 +832,46 @@ class _HomeMapViewState extends ConsumerState<HomeMapView> with TickerProviderSt
                     // Nearby suggestions section
                     if (_nearbyPlaces.isNotEmpty) ...[
                       const SizedBox(height: 20),
-                      const Text('Nearby places', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.darkText)),
+                      const Text(
+                        'Nearby places',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.darkText,
+                        ),
+                      ),
                       const SizedBox(height: 8),
-                      ..._nearbyPlaces.take(5).map((place) => _NearbyPlaceTile(
-                        place: place,
-                        onTap: () {
-                          ref.read(rideViewModelProvider.notifier).setDrop(
-                            RideLocation(
-                              latitude: place.latitude,
-                              longitude: place.longitude,
-                              address: '${place.name}, ${place.address}',
+                      ..._nearbyPlaces
+                          .take(5)
+                          .map(
+                            (place) => _NearbyPlaceTile(
+                              place: place,
+                              onTap: () {
+                                if (!_isServiceAvailable) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'In this area service is not available. Coming soon.',
+                                      ),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return;
+                                }
+                                ref
+                                    .read(rideViewModelProvider.notifier)
+                                    .setDrop(
+                                      RideLocation(
+                                        latitude: place.latitude,
+                                        longitude: place.longitude,
+                                        address:
+                                            '${place.name}, ${place.address}',
+                                      ),
+                                    );
+                                context.push('/confirm-ride');
+                              },
                             ),
-                          );
-                          context.push('/confirm-ride');
-                        },
-                      )),
+                          ),
                     ],
 
                     const SizedBox(height: 12),
@@ -534,7 +900,12 @@ class _QuickOption extends StatelessWidget {
   final String label;
   final Color color;
   final VoidCallback onTap;
-  const _QuickOption({required this.icon, required this.label, required this.color, required this.onTap});
+  const _QuickOption({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -551,7 +922,14 @@ class _QuickOption extends StatelessWidget {
             children: [
               Icon(icon, color: color, size: 24),
               const SizedBox(height: 6),
-              Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color)),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+              ),
             ],
           ),
         ),
@@ -577,24 +955,50 @@ class _NearbyPlaceTile extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 40, height: 40,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                 color: AppColors.lightPink,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.location_on_outlined, color: AppColors.primaryPink, size: 20),
+              child: const Icon(
+                Icons.location_on_outlined,
+                color: AppColors.primaryPink,
+                size: 20,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(place.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.darkText), maxLines: 1, overflow: TextOverflow.ellipsis),
-                  Text(place.address, style: const TextStyle(fontSize: 12, color: AppColors.lightGray), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(
+                    place.name,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.darkText,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    place.address,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.lightGray,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, color: AppColors.lightGray, size: 14),
+            const Icon(
+              Icons.arrow_forward_ios,
+              color: AppColors.lightGray,
+              size: 14,
+            ),
           ],
         ),
       ),

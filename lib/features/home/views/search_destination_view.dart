@@ -256,145 +256,127 @@ class _SearchDestinationViewState extends ConsumerState<SearchDestinationView> {
 
             const SizedBox(height: 16),
 
-            // ── Location Input Fields (Rapido Style) ──
+            // ── Location Input Fields ──
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.dividerColor),
-                  boxShadow: [BoxShadow(color: AppColors.cardShadow, blurRadius: 6)],
-                ),
-                child: Row(
-                  children: [
-                    // Column with dots & connector line
-                    Column(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
                       children: [
-                        // Pickup dot (Green)
+                        // Pickup Field
                         Container(
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2E7D32),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.green.shade200, width: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                          child: TextField(
+                            controller: _pickupController,
+                            focusNode: _pickupFocusNode,
+                            onChanged: _onSearchChanged,
+                            style: const TextStyle(fontSize: 14, color: AppColors.darkText, fontWeight: FontWeight.w600),
+                            decoration: InputDecoration(
+                              hintText: 'Search pickup location...',
+                              hintStyle: const TextStyle(color: AppColors.lightGray, fontSize: 13, fontWeight: FontWeight.w400),
+                              suffixIcon: _pickupController.text.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(Icons.clear),
+                                      color: AppColors.lightGray,
+                                      onPressed: () {
+                                        _pickupController.clear();
+                                        _onSearchChanged('');
+                                      },
+                                    )
+                                  : null,
+                              prefixIcon: IconButton(
+                                icon: const Icon(Icons.search),
+                                color: AppColors.lightGray,
+                                onPressed: () {
+                                  _pickupFocusNode.requestFocus();
+                                },
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10.0),
+                                borderSide: const BorderSide(color: AppColors.dividerColor),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10.0),
+                                borderSide: const BorderSide(color: AppColors.dividerColor),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20.0),
+                                borderSide: const BorderSide(color: AppColors.primaryPink, width: 1.5),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
                           ),
                         ),
-                        // Connector line
+
+                        const SizedBox(height: 12),
+
+                        // Dropoff Field
                         Container(
-                          width: 2,
-                          height: 24,
-                          margin: const EdgeInsets.symmetric(vertical: 4),
-                          color: AppColors.lightGray.withValues(alpha: 0.3),
-                        ),
-                        // Dropoff dot (Red/Pink)
-                        Container(
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE53935),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.red.shade200, width: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                          child: TextField(
+                            controller: _dropController,
+                            focusNode: _dropFocusNode,
+                            onChanged: _onSearchChanged,
+                            style: const TextStyle(fontSize: 14, color: AppColors.darkText, fontWeight: FontWeight.w600),
+                            decoration: InputDecoration(
+                              hintText: 'Search drop location...',
+                              hintStyle: const TextStyle(color: AppColors.lightGray, fontSize: 13, fontWeight: FontWeight.w400),
+                              suffixIcon: _dropController.text.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(Icons.clear),
+                                      color: AppColors.lightGray,
+                                      onPressed: () {
+                                        _dropController.clear();
+                                        _onSearchChanged('');
+                                      },
+                                    )
+                                  : null,
+                              prefixIcon: IconButton(
+                                icon: const Icon(Icons.search),
+                                color: AppColors.lightGray,
+                                onPressed: () {
+                                  _dropFocusNode.requestFocus();
+                                },
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10.0),
+                                borderSide: const BorderSide(color: AppColors.dividerColor),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10.0),
+                                borderSide: const BorderSide(color: AppColors.dividerColor),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10.0),
+                                borderSide: const BorderSide(color: AppColors.primaryPink, width: 1.5),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
                           ),
                         ),
                       ],
                     ),
+                  ),
 
-                    const SizedBox(width: 12),
-
-                    // Inputs Column
-                    Expanded(
-                      child: Column(
-                        children: [
-                          // Pickup Field
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: _activeField == 'pickup' ? AppColors.lightPink : Colors.transparent,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: TextField(
-                              controller: _pickupController,
-                              focusNode: _pickupFocusNode,
-                              onChanged: _onSearchChanged,
-                              style: const TextStyle(fontSize: 14, color: AppColors.darkText, fontWeight: FontWeight.w600),
-                              decoration: InputDecoration(
-                                hintText: 'Search pickup location...',
-                                hintStyle: const TextStyle(color: AppColors.lightGray, fontSize: 13, fontWeight: FontWeight.w400),
-                                border: InputBorder.none,
-                                isDense: true,
-                                contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                                suffixIcon: _activeField == 'pickup' && _pickupController.text.isNotEmpty
-                                    ? GestureDetector(
-                                        onTap: () {
-                                          _pickupController.clear();
-                                          _onSearchChanged('');
-                                        },
-                                        child: const Icon(Icons.close, color: AppColors.lightGray, size: 18),
-                                      )
-                                    : null,
-                              ),
-                            ),
-                          ),
-
-                          const Divider(height: 12, color: Color(0xFFEEEEEE)),
-
-                          // Dropoff Field
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: _activeField == 'drop' ? AppColors.lightPink : Colors.transparent,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: TextField(
-                              controller: _dropController,
-                              focusNode: _dropFocusNode,
-                              onChanged: _onSearchChanged,
-                              style: const TextStyle(fontSize: 14, color: AppColors.darkText, fontWeight: FontWeight.w600),
-                              decoration: InputDecoration(
-                                hintText: 'Search drop location...',
-                                hintStyle: const TextStyle(color: AppColors.lightGray, fontSize: 13, fontWeight: FontWeight.w400),
-                                border: InputBorder.none,
-                                isDense: true,
-                                contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                                suffixIcon: _activeField == 'drop' && _dropController.text.isNotEmpty
-                                    ? GestureDetector(
-                                        onTap: () {
-                                          _dropController.clear();
-                                          _onSearchChanged('');
-                                        },
-                                        child: const Icon(Icons.close, color: AppColors.lightGray, size: 18),
-                                      )
-                                    : null,
-                              ),
-                            ),
-                          ),
-                        ],
+                  // Swap Button
+                  GestureDetector(
+                    onTap: _swapLocations,
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      margin: const EdgeInsets.only(left: 4),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFF0F0F5),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.swap_vert,
+                        color: AppColors.primaryPink,
+                        size: 24,
                       ),
                     ),
-
-                    const SizedBox(width: 8),
-
-                    // Swap Button
-                    GestureDetector(
-                      onTap: _swapLocations,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFF0F0F5),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.swap_vert,
-                          color: AppColors.primaryPink,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
 

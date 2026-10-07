@@ -1,6 +1,1 @@
-package com.woosh.in;
-
-import io.flutter.embedding.android.FlutterActivity;
-
-public class MainActivity extends FlutterActivity {
-}
+// This file was removed to avoid redeclaration of MainActivity with MainActivity.kt
