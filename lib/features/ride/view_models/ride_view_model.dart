@@ -168,7 +168,7 @@ class RideViewModel extends StateNotifier<RideState> {
       final api = _ref.read(apiClientProvider);
       await api.put(
         '/ride/$rideId/rate',
-        data: {'passengerRating': rating, if (comment != null) 'passengerComment': comment},
+        data: {'rating': rating, if (comment != null) 'comment': comment},
       );
       return true;
     } catch (_) {
