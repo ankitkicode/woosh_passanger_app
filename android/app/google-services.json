@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "667592437996",
+    "project_id": "woosh-production",
+    "storage_bucket": "woosh-production.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:667592437996:android:6806d2caaa33c10a5675c9",
+        "android_client_info": {
+          "package_name": "com.woosh.in"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJjpR9ONPeL4m0qtqlfJU8Mb_MN2kRGLI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:667592437996:android:1a08c64487d6767e5675c9",
+        "android_client_info": {
+          "package_name": "com.woosh.ride"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJjpR9ONPeL4m0qtqlfJU8Mb_MN2kRGLI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

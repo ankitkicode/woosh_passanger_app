@@ -49,14 +49,22 @@ class WooshTextField extends StatelessWidget {
           maxLength: maxLength,
           autofocus: autofocus,
           textAlign: textAlign,
-          style: style ?? const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          style:
+              style ??
+              const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(fontSize: 15, color: AppColors.lightGray),
+            hintStyle: const TextStyle(
+              fontSize: 15,
+              color: AppColors.lightGray,
+            ),
             prefixIcon: Icon(icon, color: AppColors.primaryPink, size: 22),
             filled: true,
             fillColor: const Color(0xFFFAFAFA),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
             counterText: '',
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
@@ -64,7 +72,10 @@ class WooshTextField extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppColors.primaryPink, width: 1.5),
+              borderSide: const BorderSide(
+                color: AppColors.primaryPink,
+                width: 1.5,
+              ),
             ),
             errorText: errorText,
             errorStyle: const TextStyle(color: AppColors.errorRed),

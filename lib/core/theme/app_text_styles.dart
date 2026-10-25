@@ -3,7 +3,7 @@ import 'app_colors.dart';
 
 class AppTextStyles {
   static const TextStyle headline = TextStyle(
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: FontWeight.bold,
     color: AppColors.darkText,
     height: 1.2,

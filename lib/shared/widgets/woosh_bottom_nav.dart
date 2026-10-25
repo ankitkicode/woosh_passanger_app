@@ -14,7 +14,11 @@ class WooshBottomNav extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, -2)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, -2),
+          ),
         ],
       ),
       child: SafeArea(
@@ -24,14 +28,38 @@ class WooshBottomNav extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _NavItem(icon: Icons.home_filled, label: 'Home', isActive: currentIndex == 0,
-                onTap: () { if (currentIndex != 0) context.go('/home'); }),
-              _NavItem(icon: Icons.access_time, label: 'My Rides', isActive: currentIndex == 1,
-                onTap: () { if (currentIndex != 1) context.push('/ride-history'); }),
-              _NavItem(icon: Icons.shield_outlined, label: 'Safety', isActive: currentIndex == 2,
-                onTap: () { if (currentIndex != 2) context.push('/safety'); }),
-              _NavItem(icon: Icons.person_outline, label: 'Profile', isActive: currentIndex == 3,
-                onTap: () { if (currentIndex != 3) context.push('/profile'); }),
+              _NavItem(
+                icon: Icons.home_filled,
+                label: 'Home',
+                isActive: currentIndex == 0,
+                onTap: () {
+                  if (currentIndex != 0) context.go('/home');
+                },
+              ),
+              _NavItem(
+                icon: Icons.access_time,
+                label: 'My Rides',
+                isActive: currentIndex == 1,
+                onTap: () {
+                  if (currentIndex != 1) context.push('/ride-history');
+                },
+              ),
+              _NavItem(
+                icon: Icons.shield_outlined,
+                label: 'Safety',
+                isActive: currentIndex == 2,
+                onTap: () {
+                  if (currentIndex != 2) context.push('/safety');
+                },
+              ),
+              _NavItem(
+                icon: Icons.person_outline,
+                label: 'Profile',
+                isActive: currentIndex == 3,
+                onTap: () {
+                  if (currentIndex != 3) context.push('/profile');
+                },
+              ),
             ],
           ),
         ),
@@ -46,7 +74,12 @@ class _NavItem extends StatelessWidget {
   final bool isActive;
   final VoidCallback onTap;
 
-  const _NavItem({required this.icon, required this.label, required this.isActive, required this.onTap});
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {

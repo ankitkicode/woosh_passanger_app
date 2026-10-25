@@ -9,6 +9,7 @@ class AppConfig {
   // static const String baseUrl = 'http://192.168.1.8:5001/api/v1';
 
   static const String baseUrl = 'https://wooshride.in/api/v1';
+  static const String imageBaseUrl = 'https://wooshride.in';
 
   /// Connection timeout in milliseconds
   static const int connectTimeout = 15000;
@@ -33,4 +34,4 @@ class AppConfig {
 
   /// Phone number length (India)
   static const int phoneNumberLength = 10;
-}    
+}

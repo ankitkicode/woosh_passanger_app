@@ -9,6 +9,7 @@ import '../../../shared/widgets/woosh_security_badge.dart';
 import '../view_models/otp_view_model.dart';
 import '../view_models/login_view_model.dart';
 import '../view_models/signup_view_model.dart';
+import '../../../providers/auth_provider.dart';
 
 class OtpView extends ConsumerWidget {
   final String phoneNumber;
@@ -40,7 +41,10 @@ class OtpView extends ConsumerWidget {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16),
-            child: Icon(Icons.verified_user_outlined, color: AppColors.primaryPink.withValues(alpha: 0.5)),
+            child: Icon(
+              Icons.verified_user_outlined,
+              color: AppColors.primaryPink.withValues(alpha: 0.5),
+            ),
           ),
         ],
       ),
@@ -51,7 +55,11 @@ class OtpView extends ConsumerWidget {
             const SizedBox(height: 32),
             Row(
               children: [
-                Icon(Icons.mobile_friendly_outlined, size: 80, color: AppColors.primaryPink.withValues(alpha: 0.3)),
+                Icon(
+                  Icons.mobile_friendly_outlined,
+                  size: 80,
+                  color: AppColors.primaryPink.withValues(alpha: 0.3),
+                ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
@@ -62,20 +70,36 @@ class OtpView extends ConsumerWidget {
                       const SizedBox(height: 8),
                       Text(
                         "We've sent a 6-digit OTP to\n$phoneNumber",
-                        style: const TextStyle(fontSize: 14, color: AppColors.lightGray),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.lightGray,
+                        ),
                       ),
                       if (activeOtp != null && activeOtp.isNotEmpty) ...[
                         const SizedBox(height: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
-                            color: AppColors.secondaryPurple.withValues(alpha: 0.15),
+                            color: AppColors.secondaryPurple.withValues(
+                              alpha: 0.15,
+                            ),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppColors.secondaryPurple.withValues(alpha: 0.4)),
+                            border: Border.all(
+                              color: AppColors.secondaryPurple.withValues(
+                                alpha: 0.4,
+                              ),
+                            ),
                           ),
                           child: Text(
                             '🔑 Test OTP: $activeOtp',
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.secondaryPurple),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.secondaryPurple,
+                            ),
                           ),
                         ),
                       ],
@@ -103,7 +127,9 @@ class OtpView extends ConsumerWidget {
                 decoration: BoxDecoration(
                   color: AppColors.errorRed.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.errorRed.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: AppColors.errorRed.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -112,7 +138,11 @@ class OtpView extends ConsumerWidget {
                     Expanded(
                       child: Text(
                         state.error!,
-                        style: const TextStyle(color: AppColors.errorRed, fontSize: 13, fontWeight: FontWeight.w500),
+                        style: const TextStyle(
+                          color: AppColors.errorRed,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],
@@ -121,18 +151,28 @@ class OtpView extends ConsumerWidget {
             ],
 
             const SizedBox(height: 24),
-            const Text("Didn't receive the OTP?", style: TextStyle(fontSize: 12, color: AppColors.lightGray)),
+            const Text(
+              "Didn't receive the OTP?",
+              style: TextStyle(fontSize: 12, color: AppColors.lightGray),
+            ),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   'Resend OTP in ',
-                  style: TextStyle(fontSize: 12, color: state.canResend ? AppColors.lightGray : Colors.black),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: state.canResend ? AppColors.lightGray : Colors.black,
+                  ),
                 ),
                 Text(
                   '00:${state.timerSeconds.toString().padLeft(2, '0')}',
-                  style: const TextStyle(fontSize: 12, color: AppColors.primaryPink, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.primaryPink,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 if (state.canResend) ...[
                   const SizedBox(width: 8),
@@ -140,7 +180,11 @@ class OtpView extends ConsumerWidget {
                     onPressed: notifier.resendOTP,
                     child: const Text(
                       'Resend Now',
-                      style: TextStyle(fontSize: 12, color: AppColors.primaryPink, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.primaryPink,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
@@ -149,7 +193,8 @@ class OtpView extends ConsumerWidget {
             const SizedBox(height: 40),
             const WooshPrivacyNotice(
               title: 'Your security is important to us',
-              subtitle: 'We never share your OTP or personal details with anyone.',
+              subtitle:
+                  'We never share your OTP or personal details with anyone.',
             ),
             const SizedBox(height: 32),
 
@@ -160,7 +205,12 @@ class OtpView extends ConsumerWidget {
                   ? () async {
                       if (await notifier.verify()) {
                         if (context.mounted) {
-                          context.go('/home');
+                          final user = ref.read(currentUserProvider);
+                          if (user != null && !user.isMpinSet) {
+                            context.go('/set-mpin');
+                          } else {
+                            context.go('/home');
+                          }
                         }
                       }
                     }
@@ -234,32 +284,33 @@ class _OtpInputGroupState extends State<_OtpInputGroup> {
           // Visible OTP Boxes
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(
-              6,
-              (index) {
-                final isFocused = _focusNode.hasFocus && _controller.text.length == index ||
-                                  (_controller.text.length == 6 && index == 5 && _focusNode.hasFocus);
-                final text = index < _controller.text.length ? _controller.text[index] : '';
-                
-                return Container(
-                  width: 45,
-                  height: 56,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isFocused ? AppColors.primaryPink : const Color(0xFFEEEEEE),
-                      width: isFocused ? 2 : 1,
-                    ),
+            children: List.generate(6, (index) {
+              final isFocused =
+                  _focusNode.hasFocus && _controller.text.length == index ||
+                  (_controller.text.length == 6 &&
+                      index == 5 &&
+                      _focusNode.hasFocus);
+              final text = index < _controller.text.length
+                  ? _controller.text[index]
+                  : '';
+
+              return Container(
+                width: 45,
+                height: 56,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isFocused
+                        ? AppColors.primaryPink
+                        : const Color(0xFFEEEEEE),
+                    width: isFocused ? 2 : 1,
                   ),
-                  child: Text(
-                    text,
-                    style: AppTextStyles.otpDigit,
-                  ),
-                );
-              },
-            ),
+                ),
+                child: Text(text, style: AppTextStyles.otpDigit),
+              );
+            }),
           ),
         ],
       ),

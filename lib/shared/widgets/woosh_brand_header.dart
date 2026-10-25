@@ -27,15 +27,28 @@ class WooshBrandHeader extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 6)],
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 6,
+                      ),
+                    ],
                   ),
-                  child: const Icon(Icons.arrow_back_ios_new, size: 16, color: AppColors.darkText),
+                  child: const Icon(
+                    Icons.arrow_back_ios_new,
+                    size: 16,
+                    color: AppColors.darkText,
+                  ),
                 ),
               )
             else
               GestureDetector(
                 onTap: () => Scaffold.of(context).openDrawer(),
-                child: const Icon(Icons.menu, color: AppColors.darkText, size: 24),
+                child: const Icon(
+                  Icons.menu,
+                  color: AppColors.darkText,
+                  size: 24,
+                ),
               ),
 
             const Spacer(),
@@ -65,7 +78,10 @@ class WooshBrandHeader extends StatelessWidget {
                       TextSpan(text: 'Be Safe, '),
                       TextSpan(
                         text: 'Be Fearless',
-                        style: TextStyle(color: AppColors.primaryPink, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: AppColors.primaryPink,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
@@ -84,7 +100,11 @@ class WooshBrandHeader extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: Border.all(color: AppColors.borderPink, width: 1.5),
               ),
-              child: const Icon(Icons.verified_user_outlined, color: AppColors.primaryPink, size: 18),
+              child: const Icon(
+                Icons.verified_user_outlined,
+                color: AppColors.primaryPink,
+                size: 18,
+              ),
             ),
           ],
         ),

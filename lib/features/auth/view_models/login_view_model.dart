@@ -62,22 +62,20 @@ class LoginViewModel extends StateNotifier<LoginState> {
       state = state.copyWith(isSubmitting: false, devOtp: devOtp);
       return devOtp ?? 'sent';
     } catch (e) {
-      state = state.copyWith(
-        isSubmitting: false,
-        error: _extractError(e),
-      );
+      state = state.copyWith(isSubmitting: false, error: _extractError(e));
       return null;
     }
   }
 
   String _extractError(dynamic e) {
     final msg = e.toString();
-    if (msg.length > 100) return 'An unexpected error occurred. Please try again.';
+    if (msg.length > 100)
+      return 'An unexpected error occurred. Please try again.';
     return msg.replaceAll('Exception: ', '');
   }
 }
 
 final loginViewModelProvider =
     StateNotifierProvider.autoDispose<LoginViewModel, LoginState>((ref) {
-  return LoginViewModel(ref);
-});
+      return LoginViewModel(ref);
+    });

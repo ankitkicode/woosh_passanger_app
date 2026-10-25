@@ -5,7 +5,11 @@ import '../core/config/app_config.dart';
 import '../data/services/api_client.dart';
 import '../data/services/auth_service.dart';
 import '../data/repositories/auth_repository.dart';
+import '../data/services/safety_service.dart';
+import '../data/repositories/safety_repository.dart';
 import 'auth_provider.dart';
+
+export 'tracking_provider.dart';
 
 // ──── Secure Storage ────
 final secureStorageProvider = Provider<FlutterSecureStorage>((ref) {
@@ -51,3 +55,15 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
     ref.read(secureStorageProvider),
   );
 });
+
+// ──── Safety Service ────
+final safetyServiceProvider = Provider<SafetyService>((ref) {
+  return SafetyService(ref.read(dioProvider));
+});
+
+// ──── Safety Repository ────
+final safetyRepositoryProvider = Provider<SafetyRepository>((ref) {
+  return SafetyRepository(ref.read(safetyServiceProvider));
+});
+
+

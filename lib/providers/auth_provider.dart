@@ -10,11 +10,7 @@ class AuthState {
   final UserModel? user;
   final String? error;
 
-  const AuthState({
-    this.status = AuthStatus.initial,
-    this.user,
-    this.error,
-  });
+  const AuthState({this.status = AuthStatus.initial, this.user, this.error});
 
   AuthState copyWith({AuthStatus? status, UserModel? user, String? error}) {
     return AuthState(

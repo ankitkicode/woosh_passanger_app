@@ -44,7 +44,7 @@ class RideHistoryViewModel extends StateNotifier<RideHistoryState> {
       final response = await api.get('/ride/history?limit=50');
       final data = response.data['data'] as Map<String, dynamic>? ?? {};
       final rides = data['rides'] as List<dynamic>? ?? [];
-      
+
       state = state.copyWith(rides: rides, isLoading: false);
     } on DioException catch (e) {
       final msg = e.response?.data?['message'] ?? e.message ?? 'Unknown error';
@@ -62,13 +62,15 @@ class RideHistoryViewModel extends StateNotifier<RideHistoryState> {
     if (state.filter == 'All Rides') return state.rides;
     return state.rides.where((ride) {
       final status = ride['status'] as String? ?? '';
-      if (state.filter == 'Completed') return status == 'completed' || status == 'payment_completed';
+      if (state.filter == 'Completed')
+        return status == 'completed' || status == 'payment_completed';
       if (state.filter == 'Cancelled') return status.contains('cancelled');
       return true;
     }).toList();
   }
 }
 
-final rideHistoryViewModelProvider = StateNotifierProvider<RideHistoryViewModel, RideHistoryState>((ref) {
-  return RideHistoryViewModel(ref);
-});
+final rideHistoryViewModelProvider =
+    StateNotifierProvider<RideHistoryViewModel, RideHistoryState>((ref) {
+      return RideHistoryViewModel(ref);
+    });

@@ -20,10 +20,12 @@ class SocketService {
   void connect() {
     if (socket != null && socket!.connected) return;
 
-    socket = IO.io(_socketUrl, IO.OptionBuilder()
-        .setTransports(['websocket'])
-        .disableAutoConnect()
-        .build()
+    socket = IO.io(
+      _socketUrl,
+      IO.OptionBuilder()
+          .setTransports(['websocket'])
+          .disableAutoConnect()
+          .build(),
     );
 
     socket!.connect();

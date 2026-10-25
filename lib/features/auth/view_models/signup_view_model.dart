@@ -64,17 +64,22 @@ class EmergencyContact {
 class SignupViewModel extends StateNotifier<SignupState> {
   final Ref _ref;
 
-  SignupViewModel(this._ref) : super(SignupState(emergencyContacts: [const EmergencyContact()]));
+  SignupViewModel(this._ref)
+    : super(SignupState(emergencyContacts: [const EmergencyContact()]));
 
   void updateFullName(String value) => state = state.copyWith(fullName: value);
   void updateCity(String value) => state = state.copyWith(city: value);
-  void updateWhatsappNumber(String value) => state = state.copyWith(whatsappNumber: value);
+  void updateWhatsappNumber(String value) =>
+      state = state.copyWith(whatsappNumber: value);
   void updateEmail(String value) => state = state.copyWith(email: value);
 
   void addEmergencyContact() {
     if (state.emergencyContacts.length < 3) {
       state = state.copyWith(
-        emergencyContacts: [...state.emergencyContacts, const EmergencyContact()],
+        emergencyContacts: [
+          ...state.emergencyContacts,
+          const EmergencyContact(),
+        ],
       );
     }
   }
@@ -89,7 +94,10 @@ class SignupViewModel extends StateNotifier<SignupState> {
 
   void updateEmergencyContact(int index, {String? name, String? number}) {
     final newContacts = List<EmergencyContact>.from(state.emergencyContacts);
-    newContacts[index] = newContacts[index].copyWith(name: name, number: number);
+    newContacts[index] = newContacts[index].copyWith(
+      name: name,
+      number: number,
+    );
     state = state.copyWith(emergencyContacts: newContacts);
   }
 
@@ -97,12 +105,14 @@ class SignupViewModel extends StateNotifier<SignupState> {
     final errors = <String, String?>{};
     if (state.fullName.isEmpty) errors['fullName'] = 'Full name is required';
     if (state.city.isEmpty) errors['city'] = 'City is required';
-    if (state.whatsappNumber.length < 10) errors['whatsappNumber'] = 'Enter valid WhatsApp number';
+    if (state.whatsappNumber.length < 10)
+      errors['whatsappNumber'] = 'Enter valid WhatsApp number';
 
     for (int i = 0; i < state.emergencyContacts.length; i++) {
       final contact = state.emergencyContacts[i];
       if (contact.name.isEmpty) errors['contactName$i'] = 'Name required';
-      if (contact.number.length < 10) errors['contactNumber$i'] = 'Number required';
+      if (contact.number.length < 10)
+        errors['contactNumber$i'] = 'Number required';
     }
 
     state = state.copyWith(errors: errors);
@@ -116,8 +126,11 @@ class SignupViewModel extends StateNotifier<SignupState> {
     state = state.copyWith(isSubmitting: true);
     try {
       final authRepo = _ref.read(authRepositoryProvider);
-      final result = await authRepo.sendOTP(state.whatsappNumber, action: 'register');
-      
+      final result = await authRepo.sendOTP(
+        state.whatsappNumber,
+        action: 'register',
+      );
+
       // In dev mode, backend returns OTP in the response
       final devOtp = result['data']?['otp']?.toString();
       state = state.copyWith(isSubmitting: false, devOtp: devOtp);
@@ -131,5 +144,5 @@ class SignupViewModel extends StateNotifier<SignupState> {
 
 final signupViewModelProvider =
     StateNotifierProvider.autoDispose<SignupViewModel, SignupState>((ref) {
-  return SignupViewModel(ref);
-});
+      return SignupViewModel(ref);
+    });

@@ -58,7 +58,10 @@ class OtpViewModel extends StateNotifier<OtpState> {
 
   void startTimer() {
     _timer?.cancel();
-    state = state.copyWith(timerSeconds: AppConfig.otpResendSeconds, canResend: false);
+    state = state.copyWith(
+      timerSeconds: AppConfig.otpResendSeconds,
+      canResend: false,
+    );
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (state.timerSeconds > 0) {
         state = state.copyWith(timerSeconds: state.timerSeconds - 1);
@@ -71,7 +74,10 @@ class OtpViewModel extends StateNotifier<OtpState> {
 
   void setDevOtp(String? otp) {
     if (otp != null && otp.isNotEmpty) {
-      final digits = List.generate(AppConfig.otpLength, (i) => i < otp.length ? otp[i] : '');
+      final digits = List.generate(
+        AppConfig.otpLength,
+        (i) => i < otp.length ? otp[i] : '',
+      );
       state = state.copyWith(devOtp: otp, otpDigits: digits);
     }
   }
@@ -91,7 +97,10 @@ class OtpViewModel extends StateNotifier<OtpState> {
       final result = await authRepo.sendOTP(phoneNumber);
       final devOtp = result['data']?['otp']?.toString();
       if (devOtp != null && devOtp.isNotEmpty) {
-        final digits = List.generate(AppConfig.otpLength, (i) => i < devOtp.length ? devOtp[i] : '');
+        final digits = List.generate(
+          AppConfig.otpLength,
+          (i) => i < devOtp.length ? devOtp[i] : '',
+        );
         state = state.copyWith(devOtp: devOtp, otpDigits: digits);
       }
       startTimer();
@@ -122,10 +131,7 @@ class OtpViewModel extends StateNotifier<OtpState> {
       state = state.copyWith(isVerifying: false);
       return true;
     } catch (e) {
-      state = state.copyWith(
-        isVerifying: false,
-        error: _extractError(e),
-      );
+      state = state.copyWith(isVerifying: false, error: _extractError(e));
       return false;
     }
   }
@@ -138,10 +144,11 @@ class OtpViewModel extends StateNotifier<OtpState> {
     final msg = e.toString();
     if (msg.contains('Invalid OTP')) return 'Invalid OTP. Please try again.';
     if (msg.contains('expired')) return 'OTP has expired. Please resend.';
-    
+
     // Fallback for long stack traces or unexpected errors
-    if (msg.length > 100) return 'An unexpected error occurred. Please try again.';
-    
+    if (msg.length > 100)
+      return 'An unexpected error occurred. Please try again.';
+
     return msg.replaceAll('Exception: ', '');
   }
 
@@ -153,7 +160,7 @@ class OtpViewModel extends StateNotifier<OtpState> {
 }
 
 /// Family provider — requires phone number to create.
-final otpViewModelProvider =
-    StateNotifierProvider.autoDispose.family<OtpViewModel, OtpState, String>((ref, phoneNumber) {
-  return OtpViewModel(ref, phoneNumber);
-});
+final otpViewModelProvider = StateNotifierProvider.autoDispose
+    .family<OtpViewModel, OtpState, String>((ref, phoneNumber) {
+      return OtpViewModel(ref, phoneNumber);
+    });

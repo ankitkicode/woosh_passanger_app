@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
 import '../../../data/services/places_service.dart';
 import '../../ride/view_models/ride_view_model.dart';
 import '../../ride/models/ride_model.dart';
@@ -23,7 +22,8 @@ class SearchDestinationView extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<SearchDestinationView> createState() => _SearchDestinationViewState();
+  ConsumerState<SearchDestinationView> createState() =>
+      _SearchDestinationViewState();
 }
 
 class _SearchDestinationViewState extends ConsumerState<SearchDestinationView> {
@@ -46,8 +46,12 @@ class _SearchDestinationViewState extends ConsumerState<SearchDestinationView> {
     _activeField = widget.initialFocus;
 
     final rideState = ref.read(rideViewModelProvider);
-    _pickupController = TextEditingController(text: rideState.pickup?.address ?? '');
-    _dropController = TextEditingController(text: rideState.drop?.address ?? '');
+    _pickupController = TextEditingController(
+      text: rideState.pickup?.address ?? '',
+    );
+    _dropController = TextEditingController(
+      text: rideState.drop?.address ?? '',
+    );
 
     _pickupFocusNode = FocusNode();
     _dropFocusNode = FocusNode();
@@ -196,39 +200,21 @@ class _SearchDestinationViewState extends ConsumerState<SearchDestinationView> {
     }
   }
 
-  /// Swap pickup and dropoff locations
-  void _swapLocations() {
-    final rideState = ref.read(rideViewModelProvider);
-    final currentPickup = rideState.pickup;
-    final currentDrop = rideState.drop;
-
-    if (currentPickup != null && currentDrop != null) {
-      final notifier = ref.read(rideViewModelProvider.notifier);
-      notifier.setPickup(currentDrop);
-      notifier.setDrop(currentPickup);
-
-      setState(() {
-        _pickupController.text = currentDrop.address ?? '';
-        _dropController.text = currentPickup.address ?? '';
-      });
-
-      notifier.estimateFare();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final activeController = _activeField == 'pickup' ? _pickupController : _dropController;
+    final activeController = _activeField == 'pickup'
+        ? _pickupController
+        : _dropController;
     final hasQuery = activeController.text.trim().isNotEmpty;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFFAFAFA),
       body: SafeArea(
         child: Column(
           children: [
             // ── Header ──
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
               child: Row(
                 children: [
                   GestureDetector(
@@ -236,167 +222,243 @@ class _SearchDestinationViewState extends ConsumerState<SearchDestinationView> {
                       if (context.canPop()) context.pop();
                     },
                     child: Container(
-                      width: 40,
-                      height: 40,
+                      width: 48,
+                      height: 48,
                       decoration: const BoxDecoration(
-                        color: AppColors.lightPink,
+                        color: Color(0xFFF4F4F4),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.arrow_back, color: AppColors.primaryPink, size: 20),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: Colors.black,
+                        size: 20,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Text(
-                    _activeField == 'pickup' ? 'Set Pickup Location' : 'Set Drop Location',
-                    style: AppTextStyles.actionTitle,
+                  const SizedBox(width: 16),
+                  const Text(
+                    'Plan your ride',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
                   ),
                 ],
               ),
             ),
-
-            const SizedBox(height: 16),
 
             // ── Location Input Fields ──
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFEAEAEA)),
+                ),
+                child: Row(
+                  children: [
+                    // Indicator
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Pickup Field
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          child: TextField(
-                            controller: _pickupController,
-                            focusNode: _pickupFocusNode,
-                            onChanged: _onSearchChanged,
-                            style: const TextStyle(fontSize: 14, color: AppColors.darkText, fontWeight: FontWeight.w600),
-                            decoration: InputDecoration(
-                              hintText: 'Search pickup location...',
-                              hintStyle: const TextStyle(color: AppColors.lightGray, fontSize: 13, fontWeight: FontWeight.w400),
-                              suffixIcon: _pickupController.text.isNotEmpty
-                                  ? IconButton(
-                                      icon: const Icon(Icons.clear),
-                                      color: AppColors.lightGray,
-                                      onPressed: () {
-                                        _pickupController.clear();
-                                        _onSearchChanged('');
-                                      },
-                                    )
-                                  : null,
-                              prefixIcon: IconButton(
-                                icon: const Icon(Icons.search),
-                                color: AppColors.lightGray,
-                                onPressed: () {
-                                  _pickupFocusNode.requestFocus();
-                                },
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10.0),
-                                borderSide: const BorderSide(color: AppColors.dividerColor),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10.0),
-                                borderSide: const BorderSide(color: AppColors.dividerColor),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(20.0),
-                                borderSide: const BorderSide(color: AppColors.primaryPink, width: 1.5),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                            ),
+                          width: 10,
+                          height: 10,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF00C853), // Green
+                            shape: BoxShape.circle,
                           ),
                         ),
-
-                        const SizedBox(height: 12),
-
-                        // Dropoff Field
+                        const SizedBox(height: 4),
+                        SizedBox(
+                          height: 36,
+                          width: 2,
+                          child: CustomPaint(painter: _DottedLinePainter()),
+                        ),
+                        const SizedBox(height: 4),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          child: TextField(
-                            controller: _dropController,
-                            focusNode: _dropFocusNode,
-                            onChanged: _onSearchChanged,
-                            style: const TextStyle(fontSize: 14, color: AppColors.darkText, fontWeight: FontWeight.w600),
-                            decoration: InputDecoration(
-                              hintText: 'Search drop location...',
-                              hintStyle: const TextStyle(color: AppColors.lightGray, fontSize: 13, fontWeight: FontWeight.w400),
-                              suffixIcon: _dropController.text.isNotEmpty
-                                  ? IconButton(
-                                      icon: const Icon(Icons.clear),
-                                      color: AppColors.lightGray,
-                                      onPressed: () {
-                                        _dropController.clear();
-                                        _onSearchChanged('');
-                                      },
-                                    )
-                                  : null,
-                              prefixIcon: IconButton(
-                                icon: const Icon(Icons.search),
-                                color: AppColors.lightGray,
-                                onPressed: () {
-                                  _dropFocusNode.requestFocus();
-                                },
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10.0),
-                                borderSide: const BorderSide(color: AppColors.dividerColor),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10.0),
-                                borderSide: const BorderSide(color: AppColors.dividerColor),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10.0),
-                                borderSide: const BorderSide(color: AppColors.primaryPink, width: 1.5),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                            ),
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE91E63), // Pink
+                            borderRadius: BorderRadius.circular(2),
                           ),
                         ),
                       ],
                     ),
-                  ),
+                    const SizedBox(width: 16),
+                    // Text Fields
+                    Expanded(
+                      child: Column(
+                        children: [
+                          // Pickup Field
+                          TextField(
+                            controller: _pickupController,
+                            focusNode: _pickupFocusNode,
+                            onChanged: _onSearchChanged,
+                            textAlignVertical: TextAlignVertical.center,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.black,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Current location',
+                              hintStyle: const TextStyle(
+                                color: Colors.black54,
+                                fontSize: 16,
+                              ),
+                              filled: true,
+                              fillColor: _activeField == 'pickup'
+                                  ? Colors.white
+                                  : const Color(0xFFF4F4F4),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              isDense: true,
 
-                  // Swap Button
-                  GestureDetector(
-                    onTap: _swapLocations,
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      margin: const EdgeInsets.only(left: 4),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF0F0F5),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.swap_vert,
-                        color: AppColors.primaryPink,
-                        size: 24,
+                              // Single outline border
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: _activeField == 'pickup'
+                                      ? const Color(0xFFE91E63)
+                                      : Colors.transparent,
+                                  width: 1.5,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFE91E63),
+                                  width: 1.5,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          // Dropoff Field
+                          TextField(
+                            controller: _dropController,
+                            focusNode: _dropFocusNode,
+                            onChanged: _onSearchChanged,
+                            textAlignVertical: TextAlignVertical.center,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.black,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Where to?',
+                              hintStyle: const TextStyle(
+                                color: Colors.black54,
+                                fontSize: 16,
+                              ),
+                              isDense: true,
+                              filled: true,
+                              fillColor: _activeField == 'drop'
+                                  ? Colors.white
+                                  : const Color(0xFFF4F4F4),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: _activeField == 'drop'
+                                      ? const Color(0xFFE91E63)
+                                      : Colors.transparent,
+                                  width: 1.5,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFE91E63),
+                                  width: 1.5,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
 
-            const SizedBox(height: 8),
+            // ── Chips ──
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Row(
+                children: [
+                  _buildChip(Icons.home_outlined, 'Home'),
+                  const SizedBox(width: 8),
+                  _buildChip(Icons.work_outline, 'Work'),
+                  const SizedBox(width: 8),
+                  _buildChip(Icons.location_on_outlined, 'Choose on map'),
+                ],
+              ),
+            ),
 
             // ── Loading indicator ──
             if (_isSearching)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 12),
-                child: Center(child: CircularProgressIndicator(color: AppColors.primaryPink, strokeWidth: 2)),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.primaryPink,
+                    strokeWidth: 2,
+                  ),
+                ),
               ),
 
             // ── Results List ──
             Expanded(
-              child: hasQuery
-                  ? _buildSearchResults()
-                  : _buildNearbyResults(),
+              child: hasQuery ? _buildSearchResults() : _buildNearbyResults(),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4F4F4),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: const Color(0xFFE91E63), size: 16),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -410,51 +472,79 @@ class _SearchDestinationViewState extends ConsumerState<SearchDestinationView> {
           children: [
             Icon(Icons.search_off, size: 48, color: AppColors.borderPink),
             const SizedBox(height: 12),
-            const Text('No places found', style: TextStyle(color: AppColors.lightGray, fontSize: 14)),
+            const Text(
+              'No places found',
+              style: TextStyle(color: AppColors.lightGray, fontSize: 14),
+            ),
             const SizedBox(height: 4),
-            const Text('Try a different search term', style: TextStyle(color: AppColors.lightGray, fontSize: 12)),
+            const Text(
+              'Try a different search term',
+              style: TextStyle(color: AppColors.lightGray, fontSize: 12),
+            ),
           ],
         ),
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: _predictions.length,
-      separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF5F5F5)),
-      itemBuilder: (_, i) {
-        final prediction = _predictions[i];
-        return ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-          leading: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.lightPink,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              _activeField == 'pickup' ? Icons.my_location : Icons.location_on,
-              color: AppColors.primaryPink,
-              size: 20,
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('RESULTS'),
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            itemCount: _predictions.length,
+            separatorBuilder: (_, __) =>
+                const Divider(height: 1, color: Color(0xFFF5F5F5)),
+            itemBuilder: (_, i) {
+              final prediction = _predictions[i];
+              final isFirst = i == 0;
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: isFirst
+                        ? const Color(0xFFFCE4EC)
+                        : const Color(0xFFF4F4F4),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.location_on_outlined,
+                    color: isFirst ? const Color(0xFFE91E63) : Colors.black87,
+                    size: 24,
+                  ),
+                ),
+                title: Text(
+                  prediction.mainText,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(
+                  prediction.secondaryText,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF757575),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: const Text(
+                  '2.4 km',
+                  style: TextStyle(fontSize: 14, color: Color(0xFF757575)),
+                ),
+                onTap: () => _selectPrediction(prediction),
+              );
+            },
           ),
-          title: Text(
-            prediction.mainText,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.darkText),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          subtitle: Text(
-            prediction.secondaryText,
-            style: const TextStyle(fontSize: 12, color: AppColors.lightGray),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          trailing: const Icon(Icons.north_west, color: AppColors.lightGray, size: 16),
-          onTap: () => _selectPrediction(prediction),
-        );
-      },
+        ),
+      ],
     );
   }
 
@@ -468,7 +558,9 @@ class _SearchDestinationViewState extends ConsumerState<SearchDestinationView> {
             Icon(Icons.near_me, size: 48, color: AppColors.borderPink),
             const SizedBox(height: 12),
             Text(
-              _activeField == 'pickup' ? 'Type to search for pickup location' : 'Type to search for drop location',
+              _activeField == 'pickup'
+                  ? 'Type to search for pickup location'
+                  : 'Type to search for drop location',
               style: const TextStyle(color: AppColors.lightGray, fontSize: 14),
             ),
           ],
@@ -476,46 +568,73 @@ class _SearchDestinationViewState extends ConsumerState<SearchDestinationView> {
       );
     }
 
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            children: const [
-              Icon(Icons.near_me, color: AppColors.primaryPink, size: 16),
-              SizedBox(width: 6),
-              Text('Nearby suggestions', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.darkText)),
-            ],
+        _buildSectionHeader('RECENT'),
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            itemCount: _recentPlaces.length,
+            separatorBuilder: (_, __) =>
+                const Divider(height: 1, color: Color(0xFFF5F5F5)),
+            itemBuilder: (_, i) {
+              final place = _recentPlaces[i];
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF4F4F4),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.access_time,
+                    color: Colors.black87,
+                    size: 24,
+                  ),
+                ),
+                title: Text(
+                  place.name,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(
+                  place.address,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF757575),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                onTap: () => _selectNearbyPlace(place),
+              );
+            },
           ),
         ),
-        ..._recentPlaces.map((place) => ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          leading: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.lightPink,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.place_outlined, color: AppColors.primaryPink, size: 20),
-          ),
-          title: Text(
-            place.name,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.darkText),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          subtitle: Text(
-            place.address,
-            style: const TextStyle(fontSize: 12, color: AppColors.lightGray),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          trailing: const Icon(Icons.arrow_forward_ios, color: AppColors.lightGray, size: 14),
-          onTap: () => _selectNearbyPlace(place),
-        )),
       ],
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+          color: Color(0xFF757575),
+          letterSpacing: 1.2,
+        ),
+      ),
     );
   }
 
@@ -528,4 +647,30 @@ class _SearchDestinationViewState extends ConsumerState<SearchDestinationView> {
     _dropController.dispose();
     super.dispose();
   }
+}
+
+class _DottedLinePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFBDBDBD)
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+
+    const double dashHeight = 3;
+    const double dashSpace = 3;
+    double startY = 0;
+
+    while (startY < size.height) {
+      canvas.drawLine(
+        Offset(size.width / 2, startY),
+        Offset(size.width / 2, startY + dashHeight),
+        paint,
+      );
+      startY += dashHeight + dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }

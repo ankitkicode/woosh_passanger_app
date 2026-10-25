@@ -8,7 +8,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../ride/view_models/ride_view_model.dart';
 import '../../../data/services/socket_service.dart';
 
-/// Finding Your Rider screen — Rapido-style map with target pin markers & chips
 class SearchingRiderView extends ConsumerStatefulWidget {
   final String rideId;
   const SearchingRiderView({super.key, required this.rideId});
@@ -25,23 +24,28 @@ class _SearchingRiderViewState extends ConsumerState<SearchingRiderView>
   BitmapDescriptor? _dropIcon;
   BitmapDescriptor? _blueDotIcon;
 
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
   Timer? _pollTimer;
+  late AnimationController _animationController;
+  late Animation<double> _animation;
+  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
-    _pulseController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500))
-      ..repeat(reverse: true);
-    _pulseAnimation = Tween<double>(begin: 0.85, end: 1.2).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
     _loadMarkerIcons();
     _startListening();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0.2, end: 0.9).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+    _pulseAnimation = Tween<double>(begin: 0.85, end: 1.15).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
   }
 
-  /// Generates target pin marker with vertical line stem (matches ConfirmRideView)
   Future<BitmapDescriptor> _createTargetMarkerIcon({
     required Color color,
     double radius = 16,
@@ -76,7 +80,6 @@ class _SearchingRiderViewState extends ConsumerState<SearchingRiderView>
     return BitmapDescriptor.bytes(byteData!.buffer.asUint8List());
   }
 
-  /// Generates blue GPS location dot marker
   Future<BitmapDescriptor> _createBlueDotIcon() async {
     final pictureRecorder = ui.PictureRecorder();
     final canvas = Canvas(pictureRecorder);
@@ -123,7 +126,6 @@ class _SearchingRiderViewState extends ConsumerState<SearchingRiderView>
   }
 
   void _startListening() {
-    // Primary: Listen via Socket for instant update
     SocketService().onRideAccepted((data) {
       if (data['rideId'] == widget.rideId && mounted) {
         _pollTimer?.cancel();
@@ -131,9 +133,10 @@ class _SearchingRiderViewState extends ConsumerState<SearchingRiderView>
       }
     });
 
-    // Fallback: Poll every 5 seconds in case socket misses it
     _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
-      final ride = await ref.read(rideViewModelProvider.notifier).getRideDetails(widget.rideId);
+      final ride = await ref
+          .read(rideViewModelProvider.notifier)
+          .getRideDetails(widget.rideId);
       if (ride != null && ride.status == 'accepted' && mounted) {
         _pollTimer?.cancel();
         context.go('/rider-found/${widget.rideId}');
@@ -167,419 +170,379 @@ class _SearchingRiderViewState extends ConsumerState<SearchingRiderView>
     final state = ref.watch(rideViewModelProvider);
     final pickup = state.pickup;
     final drop = state.drop;
+    final ride = state.activeRide;
+
+    final double fare = ride?.fare ?? state.fareEstimate?.fare ?? 0.0;
+    final String pickupAddress = pickup?.address ?? 'Current location';
+    final String dropAddress = drop?.address ?? 'Drop place';
 
     final markers = <Marker>{};
 
-    // Pickup — red target pin
     if (pickup != null) {
-      markers.add(Marker(
-        markerId: const MarkerId('pickup'),
-        position: LatLng(pickup.latitude, pickup.longitude),
-        icon: _pickupIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-        anchor: const Offset(0.5, 1.0),
-        infoWindow: InfoWindow(title: pickup.address ?? 'Pickup'),
-      ));
+      markers.add(
+        Marker(
+          markerId: const MarkerId('pickup'),
+          position: LatLng(pickup.latitude, pickup.longitude),
+          icon: _pickupIcon ?? BitmapDescriptor.defaultMarker,
+        ),
+      );
     }
 
-    // Dropoff — green target pin
-    if (drop != null) {
-      markers.add(Marker(
-        markerId: const MarkerId('drop'),
-        position: LatLng(drop.latitude, drop.longitude),
-        icon: _dropIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-        anchor: const Offset(0.5, 1.0),
-        infoWindow: InfoWindow(title: drop.address ?? 'Dropoff'),
-      ));
-    }
-
-    // Cluster of riders / bikes near dropoff
     if (drop != null) {
       final baseLat = drop.latitude;
       final baseLng = drop.longitude;
-
       final offsets = [
         const Offset(-0.0018, -0.0012),
         const Offset(-0.0012, -0.0022),
-        const Offset(-0.0022, -0.0018),
-        const Offset(-0.0015, -0.0028),
-        const Offset(-0.0026, -0.0010),
+        const Offset(0.0015, 0.0018),
       ];
-      final rotations = [30.0, 75.0, -45.0, 120.0, 15.0];
-
       for (int i = 0; i < offsets.length; i++) {
-        markers.add(Marker(
-          markerId: MarkerId('rider_$i'),
-          position: LatLng(baseLat + offsets[i].dx, baseLng + offsets[i].dy),
-          icon: _bikeMarkerIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-          anchor: const Offset(0.5, 0.5),
-          rotation: rotations[i],
-        ));
+        markers.add(
+          Marker(
+            markerId: MarkerId('rider_$i'),
+            position: LatLng(baseLat + offsets[i].dx, baseLng + offsets[i].dy),
+            icon: _bikeMarkerIcon ?? BitmapDescriptor.defaultMarker,
+          ),
+        );
       }
-
-      // Blue current location GPS dot
-      markers.add(Marker(
-        markerId: const MarkerId('user_location'),
-        position: LatLng(baseLat - 0.0019, baseLng - 0.0019),
-        icon: _blueDotIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-        anchor: const Offset(0.5, 0.5),
-      ));
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Safe Area top padding
-            SizedBox(height: MediaQuery.of(context).padding.top + 8),
+      body: Stack(
+        children: [
+          // Google Map Background
+          GoogleMap(
+            initialCameraPosition: CameraPosition(
+              target: pickup != null
+                  ? LatLng(pickup.latitude, pickup.longitude)
+                  : const LatLng(23.2599, 77.4126),
+              zoom: 14,
+            ),
+            markers: markers,
+            zoomControlsEnabled: false,
+            onMapCreated: (c) {
+              _mapController = c;
+              Future.delayed(const Duration(milliseconds: 500), () {
+                _fitMapToBounds();
+              });
+            },
+          ),
 
-            // ── Full Map Card View (Same as ConfirmRideView) ──
-            Container(
-              height: 300,
+          // Central Pulse Effect
+          Align(
+            alignment: const Alignment(0, -0.5),
+            child: ScaleTransition(
+              scale: _pulseAnimation,
+              child: Container(
+                width: 140,
+                height: 140,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.primaryPink.withValues(alpha: 0.15),
+                ),
+                child: Center(
+                  child: Container(
+                    width: 90,
+                    height: 90,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primaryPink.withValues(alpha: 0.25),
+                    ),
+                    child: Center(
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.primaryPink,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Bottom Sheet
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
               width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(18),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.12),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  )
+                    color: Colors.black12,
+                    blurRadius: 10,
+                    spreadRadius: 2,
+                  ),
                 ],
               ),
-              clipBehavior: Clip.antiAlias,
-              child: Stack(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  GoogleMap(
-                    initialCameraPosition: CameraPosition(
-                      target: pickup != null ? LatLng(pickup.latitude, pickup.longitude) : const LatLng(23.2599, 77.4126),
-                      zoom: 13,
-                    ),
-                    markers: markers,
-                    polylines: pickup != null && drop != null ? {
-                      Polyline(
-                        polylineId: const PolylineId('route'),
-                        color: const Color(0xFF1A1A1A), // solid dark black route line
-                        width: 5,
-                        points: [LatLng(pickup.latitude, pickup.longitude), LatLng(drop.latitude, drop.longitude)],
-                      ),
-                    } : {},
-                    zoomControlsEnabled: false,
-                    scrollGesturesEnabled: true,
-                    rotateGesturesEnabled: false,
-                    tiltGesturesEnabled: false,
-                    mapToolbarEnabled: false,
-                    onMapCreated: (c) {
-                      _mapController = c;
-                      Future.delayed(const Duration(milliseconds: 500), () {
-                        _fitMapToBounds();
-                      });
-                    },
-                  ),
-
-                  // ── Pickup Chip (Top Left) ──
-                  if (pickup != null)
-                    Positioned(
-                      top: 16,
-                      left: 16,
-                      child: _MapChip(
-                        label: pickup.address != null && pickup.address!.length > 18
-                            ? '${pickup.address!.substring(0, 15)}...'
-                            : (pickup.address ?? 'Pickup'),
-                      ),
-                    ),
-
-                  // ── Dropoff Chip (Center / Middle Right) ──
-                  if (drop != null)
-                    Positioned(
-                      top: 120,
-                      right: 20,
-                      child: _MapChip(
-                        label: drop.address != null && drop.address!.length > 18
-                            ? '${drop.address!.substring(0, 15)}...'
-                            : (drop.address ?? 'Dropoff'),
-                      ),
-                    ),
-
-                  // ── Bottom Left: Floating Back Button ──
-                  Positioned(
-                    bottom: 16,
-                    left: 16,
-                    child: GestureDetector(
-                      onTap: () {
-                        if (context.canPop()) context.pop();
-                      },
-                      child: Container(
-                        width: 42,
-                        height: 42,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.15),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.arrow_back,
-                          color: Color(0xFF1A1A1A),
-                          size: 20,
-                        ),
+                  // Handle indicator
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                   ),
+                  const SizedBox(height: 16),
 
-                  // ── Bottom Right: My Location Button ──
-                  Positioned(
-                    bottom: 16,
-                    right: 16,
-                    child: GestureDetector(
-                      onTap: _fitMapToBounds,
-                      child: Container(
-                        width: 42,
-                        height: 42,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.15),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.my_location,
-                          color: Color(0xFF1976D2),
-                          size: 20,
-                        ),
-                      ),
+                  // Title
+                  const Text(
+                    'Finding your rider...',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.darkText,
                     ),
                   ),
-                ],
-              ),
-            ),
+                  const SizedBox(height: 12),
 
-            const SizedBox(height: 32),
-
-            // ── Animated search icon ──
-            AnimatedBuilder(
-              animation: _pulseAnimation,
-              builder: (_, __) {
-                return SizedBox(
-                  width: 120, height: 120,
-                  child: Stack(
-                    alignment: Alignment.center,
+                  // Progress Bar
+                  Stack(
                     children: [
-                      Transform.scale(
-                        scale: _pulseAnimation.value * 1.1,
-                        child: Container(width: 110, height: 110, decoration: BoxDecoration(
-                          shape: BoxShape.circle, color: AppColors.primaryPink.withValues(alpha: 0.06))),
-                      ),
-                      Transform.scale(
-                        scale: _pulseAnimation.value,
-                        child: Container(width: 80, height: 80, decoration: BoxDecoration(
-                          shape: BoxShape.circle, color: AppColors.primaryPink.withValues(alpha: 0.12))),
-                      ),
                       Container(
-                        width: 56, height: 56,
+                        height: 4,
+                        width: double.infinity,
                         decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white,
-                          border: Border.all(color: AppColors.primaryPink, width: 2),
+                          color: const Color(0xFFF3E5F5),
+                          borderRadius: BorderRadius.circular(2),
                         ),
-                        child: const Icon(Icons.search, color: AppColors.primaryPink, size: 28),
                       ),
-                      Positioned(
-                        bottom: 16, right: 16,
+                      AnimatedBuilder(
+                        animation: _animation,
+                        builder: (context, child) {
+                          return FractionallySizedBox(
+                            widthFactor: _animation.value,
+                            child: child,
+                          );
+                        },
                         child: Container(
-                          width: 32, height: 32,
+                          height: 4,
                           decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: AppColors.brandGradient,
+                            color: const Color(0xFFFF7043),
+                            borderRadius: BorderRadius.circular(2),
                           ),
-                          child: const Icon(Icons.two_wheeler, color: Colors.white, size: 18),
                         ),
                       ),
                     ],
                   ),
-                );
-              },
-            ),
+                  const SizedBox(height: 12),
 
-            const SizedBox(height: 20),
-            const Text("We're finding the best rider for you", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.darkText)),
-            const SizedBox(height: 4),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 40),
-              child: Text(
-                'Please wait while we match you with a nearby verified women rider.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: AppColors.lightGray),
-              ),
-            ),
+                  // Subtitle
+                  const Text(
+                    'Matching you with the nearest verified woman rider',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.lightGray,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
 
-            const SizedBox(height: 28),
+                  // Trip Summary Card
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.dividerColor),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Location Icons Column
+                        Column(
+                          children: [
+                            const Icon(Icons.circle, color: Color(0xFF2E7D32), size: 10),
+                            Container(
+                              height: 18,
+                              width: 1,
+                              color: Colors.grey[400],
+                            ),
+                            Container(
+                              width: 10,
+                              height: 10,
+                              color: AppColors.primaryPink,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(width: 12),
 
-            // ── 4 Feature chips ──
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: const [
-                  _FeatureChip(icon: Icons.verified_user, label: 'Verified Riders', sub: '100% verified\nwomen riders', color: AppColors.primaryPink),
-                  _FeatureChip(icon: Icons.location_on, label: 'Live Tracking', sub: 'Share your ride\nin real-time', color: AppColors.primaryPink),
-                  _FeatureChip(icon: Icons.sos, label: 'Emergency Help', sub: 'One tap SOS\nfor your safety', color: AppColors.errorRed),
-                  _FeatureChip(icon: Icons.headset_mic, label: '24x7 Support', sub: "We're here\nfor you", color: AppColors.primaryPink),
+                        // Address Column
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                pickupAddress,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.darkText,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                dropAddress,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.darkText,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Fare Column
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              '₹${fare.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.darkText,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${state.paymentMethod.toUpperCase()} · Bike',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.lightGray,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Emergency Contact Card
+                  GestureDetector(
+                    onTap: () {
+                      context.push('/add-emergency-contact');
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.lightPink,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.person_add_outlined,
+                              color: AppColors.primaryPink,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Add an emergency contact',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.darkText,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'They can follow your trips and get SOS alerts',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.lightGray,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            Icons.chevron_right,
+                            color: AppColors.primaryPink,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Cancel request button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppColors.dividerColor, width: 1.5),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(26),
+                        ),
+                      ),
+                      onPressed: () async {
+                        _pollTimer?.cancel();
+                        await ref
+                            .read(rideViewModelProvider.notifier)
+                            .cancelRide(widget.rideId);
+                        if (context.mounted) context.go('/home');
+                      },
+                      child: const Text(
+                        'Cancel request',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.darkText,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
                 ],
               ),
             ),
-
-            const SizedBox(height: 24),
-
-            // ── Safety priority text ──
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: AppColors.lightPink,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 24, height: 24,
-                      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                      child: const Icon(Icons.verified_user, color: AppColors.primaryPink, size: 14),
-                    ),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text(
-                        'Your safety is our priority. We never compromise.',
-                        style: TextStyle(fontSize: 12, color: AppColors.primaryPink, fontWeight: FontWeight.w500),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // ── Cancel Ride button ──
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
-                width: double.infinity,
-                height: 56,
-                decoration: BoxDecoration(
-                  gradient: AppColors.verifyButtonGradient,
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: ElevatedButton(
-                  onPressed: () async {
-                    _pollTimer?.cancel();
-                    await ref.read(rideViewModelProvider.notifier).cancelRide(widget.rideId);
-                    if (context.mounted) context.go('/home');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                  ),
-                  child: const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text('Cancel Ride', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                      Text('You can cancel anytime', style: TextStyle(color: Colors.white70, fontSize: 11)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 32),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   @override
   void dispose() {
+    _animationController.dispose();
     _mapController?.dispose();
-    _pulseController.dispose();
     _pollTimer?.cancel();
     SocketService().offRideAccepted();
     super.dispose();
-  }
-}
-
-class _FeatureChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String sub;
-  final Color color;
-  const _FeatureChip({required this.icon, required this.label, required this.sub, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 44, height: 44,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: color, size: 22),
-        ),
-        const SizedBox(height: 6),
-        Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color)),
-        const SizedBox(height: 2),
-        Text(sub, textAlign: TextAlign.center, style: const TextStyle(fontSize: 9, color: AppColors.lightGray)),
-      ],
-    );
-  }
-}
-
-/// Address chip overlaid on the map
-class _MapChip extends StatelessWidget {
-  final String label;
-
-  const _MapChip({
-    required this.label,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: Color(0xFF1A1A1A),
-        ),
-      ),
-    );
   }
 }

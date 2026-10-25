@@ -15,7 +15,22 @@ import '../../features/profile/views/profile_view.dart';
 import '../../features/profile/views/ride_history_view.dart';
 import '../../features/profile/views/wallet_view.dart';
 import '../../features/profile/views/edit_profile_view.dart';
+import '../../features/profile/views/settings_view.dart';
+import '../../features/profile/views/help_support_view.dart';
+import '../../features/saved_places/views/saved_places_view.dart';
 import '../../features/safety/views/safety_view.dart';
+import '../../features/safety/views/emergency_contacts_view.dart';
+import '../../features/safety/views/add_emergency_contact_view.dart';
+import '../../features/safety/views/sos_active_view.dart';
+import '../../features/support/views/support_tickets_view.dart';
+import '../../features/support/views/create_ticket_view.dart';
+import '../../features/support/views/ticket_chat_view.dart';
+import '../../data/models/emergency_contact.dart';
+
+import '../../features/auth/views/mpin/set_mpin_view.dart';
+import '../../features/auth/views/mpin/verify_mpin_view.dart';
+import '../../features/auth/views/mpin/change_mpin_view.dart';
+import '../../features/auth/views/mpin/forgot_mpin_view.dart';
 
 class AppRoutes {
   AppRoutes._();
@@ -24,22 +39,13 @@ class AppRoutes {
     initialLocation: '/splash',
     routes: [
       // ── Auth & Onboarding ─────────────────────────────
-      GoRoute(
-        path: '/splash',
-        builder: (context, state) => const SplashView(),
-      ),
+      GoRoute(path: '/splash', builder: (context, state) => const SplashView()),
       GoRoute(
         path: '/verification',
         builder: (context, state) => const VerificationView(),
       ),
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginView(),
-      ),
-      GoRoute(
-        path: '/signup',
-        builder: (context, state) => const SignupView(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginView()),
+      GoRoute(path: '/signup', builder: (context, state) => const SignupView()),
       GoRoute(
         path: '/otp/:phone',
         builder: (context, state) {
@@ -47,31 +53,71 @@ class AppRoutes {
           return OtpView(phoneNumber: phone);
         },
       ),
+      GoRoute(
+        path: '/set-mpin',
+        builder: (context, state) => const SetMpinView(),
+      ),
+      GoRoute(
+        path: '/verify-mpin',
+        builder: (context, state) {
+          final phone = state.uri.queryParameters['phone'] ?? '';
+          return VerifyMpinView(phoneNumber: phone);
+        },
+      ),
+      GoRoute(
+        path: '/change-mpin',
+        builder: (context, state) => const ChangeMpinView(),
+      ),
+      GoRoute(
+        path: '/forgot-mpin',
+        builder: (context, state) {
+          final phone = state.uri.queryParameters['phone'] ?? '';
+          return ForgotMpinView(phoneNumber: phone);
+        },
+      ),
 
       // ── Home ──────────────────────────────────────────
-      GoRoute(
-        path: '/home',
-        builder: (context, state) => const HomeMapView(),
-      ),
+      GoRoute(path: '/home', builder: (context, state) => const HomeMapView()),
       GoRoute(
         path: '/search',
         builder: (context, state) {
           final focus = state.uri.queryParameters['focus'] ?? 'drop';
-          final fromConfirm = state.uri.queryParameters['fromConfirm'] == 'true';
-          return SearchDestinationView(initialFocus: focus, fromConfirm: fromConfirm);
+          final fromConfirm =
+              state.uri.queryParameters['fromConfirm'] == 'true';
+          return SearchDestinationView(
+            initialFocus: focus,
+            fromConfirm: fromConfirm,
+          );
         },
       ),
       GoRoute(
         path: '/search-destination',
         builder: (context, state) {
           final focus = state.uri.queryParameters['focus'] ?? 'drop';
-          final fromConfirm = state.uri.queryParameters['fromConfirm'] == 'true';
-          return SearchDestinationView(initialFocus: focus, fromConfirm: fromConfirm);
+          final fromConfirm =
+              state.uri.queryParameters['fromConfirm'] == 'true';
+          return SearchDestinationView(
+            initialFocus: focus,
+            fromConfirm: fromConfirm,
+          );
         },
       ),
+      GoRoute(path: '/safety', builder: (context, state) => const SafetyView()),
       GoRoute(
-        path: '/safety',
-        builder: (context, state) => const SafetyView(),
+        path: '/emergency-contacts',
+        builder: (context, state) => const EmergencyContactsView(),
+      ),
+      GoRoute(
+        path: '/add-emergency-contact',
+        builder: (context, state) {
+          final contactToEdit = state.extra as EmergencyContact?;
+          return AddEmergencyContactView(contactToEdit: contactToEdit);
+        },
+      ),
+
+      GoRoute(
+        path: '/sos-active',
+        builder: (context, state) => const SosActiveView(),
       ),
 
       // ── Ride Flow ─────────────────────────────────────
@@ -118,12 +164,36 @@ class AppRoutes {
         builder: (context, state) => const EditProfileView(),
       ),
       GoRoute(
+        path: '/settings',
+        builder: (context, state) => const SettingsView(),
+      ),
+      GoRoute(
+        path: '/help-support',
+        builder: (context, state) => const HelpSupportView(),
+      ),
+      GoRoute(
+        path: '/saved-places',
+        builder: (context, state) => const SavedPlacesView(),
+      ),
+      GoRoute(
         path: '/ride-history',
         builder: (context, state) => const RideHistoryView(),
       ),
+      GoRoute(path: '/wallet', builder: (context, state) => const WalletView()),
       GoRoute(
-        path: '/wallet',
-        builder: (context, state) => const WalletView(),
+        path: '/support/tickets',
+        builder: (context, state) => const SupportTicketsView(),
+      ),
+      GoRoute(
+        path: '/support/tickets/create',
+        builder: (context, state) => CreateTicketView(rideId: state.uri.queryParameters['rideId']),
+      ),
+      GoRoute(
+        path: '/support/tickets/:ticketId',
+        builder: (context, state) {
+          final ticketId = state.pathParameters['ticketId']!;
+          return TicketChatView(ticketId: ticketId);
+        },
       ),
     ],
   );

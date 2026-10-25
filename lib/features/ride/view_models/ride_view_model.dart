@@ -74,11 +74,13 @@ class RideViewModel extends StateNotifier<RideState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final api = _ref.read(apiClientProvider);
-      final response = await api.post('/ride/estimate', data: {
-        'pickup': state.pickup!.toJson(),
-        'drop': state.drop!.toJson(),
-      });
-      final estimate = FareEstimate.fromJson(response.data['data'] as Map<String, dynamic>);
+      final response = await api.post(
+        '/ride/estimate',
+        data: {'pickup': state.pickup!.toJson(), 'drop': state.drop!.toJson()},
+      );
+      final estimate = FareEstimate.fromJson(
+        response.data['data'] as Map<String, dynamic>,
+      );
       state = state.copyWith(fareEstimate: estimate, isLoading: false);
       return true;
     } catch (e) {
@@ -93,12 +95,17 @@ class RideViewModel extends StateNotifier<RideState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final api = _ref.read(apiClientProvider);
-      final response = await api.post('/ride/request', data: {
-        'pickup': state.pickup!.toJson(),
-        'drop': state.drop!.toJson(),
-        'paymentMethod': state.paymentMethod,
-      });
-      final ride = RideModel.fromJson(response.data['data'] as Map<String, dynamic>);
+      final response = await api.post(
+        '/ride/request',
+        data: {
+          'pickup': state.pickup!.toJson(),
+          'drop': state.drop!.toJson(),
+          'paymentMethod': state.paymentMethod,
+        },
+      );
+      final ride = RideModel.fromJson(
+        response.data['data'] as Map<String, dynamic>,
+      );
       state = state.copyWith(activeRide: ride, isLoading: false);
       return ride.id;
     } catch (e) {
@@ -112,8 +119,14 @@ class RideViewModel extends StateNotifier<RideState> {
     try {
       final api = _ref.read(apiClientProvider);
       final response = await api.get('/ride/$rideId');
-      final ride = RideModel.fromJson(response.data['data'] as Map<String, dynamic>);
-      state = state.copyWith(activeRide: ride);
+      final ride = RideModel.fromJson(
+        response.data['data'] as Map<String, dynamic>,
+      );
+      state = state.copyWith(
+        activeRide: ride,
+        pickup: ride.pickup,
+        drop: ride.drop,
+      );
       return ride;
     } catch (_) {
       return state.activeRide;
@@ -137,7 +150,10 @@ class RideViewModel extends StateNotifier<RideState> {
   Future<bool> cancelRide(String rideId) async {
     try {
       final api = _ref.read(apiClientProvider);
-      await api.put('/ride/$rideId/cancel', data: {'reason': 'Passenger cancelled'});
+      await api.put(
+        '/ride/$rideId/cancel',
+        data: {'reason': 'Passenger cancelled'},
+      );
       state = state.copyWith(activeRide: null);
       return true;
     } catch (e) {
@@ -150,10 +166,10 @@ class RideViewModel extends StateNotifier<RideState> {
   Future<bool> rateRide(String rideId, int rating, {String? comment}) async {
     try {
       final api = _ref.read(apiClientProvider);
-      await api.put('/ride/$rideId/rate', data: {
-        'rating': rating,
-        if (comment != null) 'comment': comment,
-      });
+      await api.put(
+        '/ride/$rideId/rate',
+        data: {'passengerRating': rating, if (comment != null) 'passengerComment': comment},
+      );
       return true;
     } catch (_) {
       return false;
@@ -183,15 +199,23 @@ class RideViewModel extends StateNotifier<RideState> {
   }
 
   /// Verify Razorpay payment
-  Future<bool> verifyPayment(String rideId, String orderId, String paymentId, String signature) async {
+  Future<bool> verifyPayment(
+    String rideId,
+    String orderId,
+    String paymentId,
+    String signature,
+  ) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final api = _ref.read(apiClientProvider);
-      await api.post('/payment/ride/$rideId/verify', data: {
-        'razorpay_order_id': orderId,
-        'razorpay_payment_id': paymentId,
-        'razorpay_signature': signature,
-      });
+      await api.post(
+        '/payment/ride/$rideId/verify',
+        data: {
+          'razorpay_order_id': orderId,
+          'razorpay_payment_id': paymentId,
+          'razorpay_signature': signature,
+        },
+      );
       // Optionally refresh ride details
       await getRideDetails(rideId);
       state = state.copyWith(isLoading: false);
@@ -199,6 +223,33 @@ class RideViewModel extends StateNotifier<RideState> {
     } catch (e) {
       state = state.copyWith(isLoading: false, error: _extractError(e));
       return false;
+    }
+  }
+
+  /// Check for active ride
+  Future<RideModel?> checkActiveRide() async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final api = _ref.read(apiClientProvider);
+      final response = await api.get('/ride/active');
+      final data = response.data['data'] as Map<String, dynamic>;
+
+      if (data['hasActiveRide'] == true && data['ride'] != null) {
+        final rideData = data['ride'] as Map<String, dynamic>;
+        final ride = RideModel.fromJson(rideData);
+        state = state.copyWith(
+          activeRide: ride,
+          isLoading: false,
+          pickup: ride.pickup,
+          drop: ride.drop,
+        );
+        return ride;
+      }
+      state = state.copyWith(isLoading: false);
+      return null;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: _extractError(e));
+      return null;
     }
   }
 
@@ -220,6 +271,8 @@ class RideViewModel extends StateNotifier<RideState> {
   }
 }
 
-final rideViewModelProvider = StateNotifierProvider<RideViewModel, RideState>((ref) {
+final rideViewModelProvider = StateNotifierProvider<RideViewModel, RideState>((
+  ref,
+) {
   return RideViewModel(ref);
 });

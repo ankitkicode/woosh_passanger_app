@@ -59,7 +59,10 @@ class AuthRepository {
   }
 
   /// Send OTP to phone number. Returns OTP in dev mode.
-  Future<Map<String, dynamic>> sendOTP(String phoneNumber, {String action = 'login'}) async {
+  Future<Map<String, dynamic>> sendOTP(
+    String phoneNumber, {
+    String action = 'login',
+  }) async {
     return _authService.sendOTP(phoneNumber, action: action);
   }
 
@@ -97,5 +100,46 @@ class AuthRepository {
   Future<bool> isLoggedIn() async {
     final token = await getAccessToken();
     return token != null && token.isNotEmpty;
+  }
+
+  // ──── MPIN Operations ────
+
+  Future<void> setMpin(String mpin, String confirmMpin) async {
+    await _authService.setMpin(mpin, confirmMpin);
+    // Update local user object
+    final user = await getSavedUser();
+    if (user != null) {
+      await saveUser(user.copyWith(isMpinSet: true));
+    }
+  }
+
+  Future<AuthResponse> verifyMpin({
+    required String mpin,
+    required String phoneNumber,
+  }) async {
+    final response = await _authService.verifyMpin(
+      mpin: mpin,
+      phoneNumber: phoneNumber,
+    );
+    // Persist tokens and user
+    await saveTokens(response.accessToken, response.refreshToken);
+    await saveUser(response.user);
+    return response;
+  }
+
+  Future<void> changeMpin(String oldMpin, String newMpin, String confirmNewMpin) async {
+    await _authService.changeMpin(oldMpin, newMpin, confirmNewMpin);
+    final user = await getSavedUser();
+    if (user != null) {
+      await saveUser(user.copyWith(isMpinSet: true));
+    }
+  }
+
+  Future<void> forgotMpin(String phoneNumber, String otp, String newMpin, String confirmNewMpin) async {
+    await _authService.forgotMpin(phoneNumber, otp, newMpin, confirmNewMpin);
+    final user = await getSavedUser();
+    if (user != null) {
+      await saveUser(user.copyWith(isMpinSet: true));
+    }
   }
 }

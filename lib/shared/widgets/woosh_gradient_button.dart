@@ -21,15 +21,13 @@ class WooshGradientButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveGradient = gradient ?? AppColors.verifyButtonGradient;
     final isEnabled = onPressed != null && !isLoading;
 
     return Container(
       width: double.infinity,
       height: 58,
       decoration: BoxDecoration(
-        gradient: isEnabled ? effectiveGradient : null,
-        color: isEnabled ? null : Colors.grey[300],
+        color: isEnabled ? AppColors.primaryPink : Colors.grey[300],
         borderRadius: BorderRadius.circular(18),
         boxShadow: isEnabled
             ? [
@@ -48,13 +46,18 @@ class WooshGradientButton extends StatelessWidget {
           shadowColor: Colors.transparent,
           disabledBackgroundColor: Colors.transparent,
           disabledForegroundColor: Colors.white70,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
         ),
         child: isLoading
             ? const SizedBox(
                 width: 24,
                 height: 24,
-                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2.5,
+                ),
               )
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,

@@ -58,9 +58,7 @@ class VerificationViewModel extends StateNotifier<VerificationState> {
         state = state.copyWith(selfiePath: photo.path, error: null);
       }
     } catch (e) {
-      state = state.copyWith(
-        error: 'Camera is not available on this device.',
-      );
+      state = state.copyWith(error: 'Camera is not available on this device.');
     }
   }
 
@@ -74,9 +72,9 @@ class VerificationViewModel extends StateNotifier<VerificationState> {
 
   Future<void> verify() async {
     if (state.selfiePath == null) return;
-    
+
     state = state.copyWith(isVerifying: true, error: null);
-    
+
     try {
       final authRepo = _ref.read(authRepositoryProvider);
       final isFemale = await authRepo.verifyGender(state.selfiePath!);
@@ -85,14 +83,15 @@ class VerificationViewModel extends StateNotifier<VerificationState> {
         state = state.copyWith(isVerifying: false, isSuccess: true);
       } else {
         state = const VerificationState(
-          error: 'Verification failed. This app is strictly for female passengers.',
+          error:
+              'Verification failed. This app is strictly for female passengers.',
         );
       }
     } catch (e) {
       final msg = e.toString();
       state = state.copyWith(
         isVerifying: false,
-        error: msg.length > 100 
+        error: msg.length > 100
             ? 'An unexpected error occurred. Please try again.'
             : msg.replaceAll('Exception: ', ''),
       );
@@ -101,6 +100,8 @@ class VerificationViewModel extends StateNotifier<VerificationState> {
 }
 
 final verificationViewModelProvider =
-    StateNotifierProvider.autoDispose<VerificationViewModel, VerificationState>((ref) {
-  return VerificationViewModel(ref);
-});
+    StateNotifierProvider.autoDispose<VerificationViewModel, VerificationState>(
+      (ref) {
+        return VerificationViewModel(ref);
+      },
+    );

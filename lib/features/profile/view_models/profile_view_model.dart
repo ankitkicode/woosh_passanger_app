@@ -8,7 +8,11 @@ class ProfileState {
 
   ProfileState({this.isLoading = false, this.error, this.data});
 
-  ProfileState copyWith({bool? isLoading, String? error, Map<String, dynamic>? data}) {
+  ProfileState copyWith({
+    bool? isLoading,
+    String? error,
+    Map<String, dynamic>? data,
+  }) {
     return ProfileState(
       isLoading: isLoading ?? this.isLoading,
       error: error,
@@ -29,13 +33,17 @@ class ProfileViewModel extends StateNotifier<ProfileState> {
     try {
       final api = _ref.read(apiClientProvider);
       final response = await api.get('/passenger/profile');
-      state = state.copyWith(isLoading: false, data: response.data['data'] as Map<String, dynamic>?);
+      state = state.copyWith(
+        isLoading: false,
+        data: response.data['data'] as Map<String, dynamic>?,
+      );
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 }
 
-final profileViewModelProvider = StateNotifierProvider<ProfileViewModel, ProfileState>((ref) {
-  return ProfileViewModel(ref);
-});
+final profileViewModelProvider =
+    StateNotifierProvider<ProfileViewModel, ProfileState>((ref) {
+      return ProfileViewModel(ref);
+    });

@@ -22,12 +22,15 @@ class WooshAppBar extends StatelessWidget implements PreferredSizeWidget {
         children: [
           Image.asset('assets/woosh_logo.png', height: 30),
           const SizedBox(height: 2),
-
         ],
       ),
       leading: onBack != null
           ? IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 20),
+              icon: const Icon(
+                Icons.arrow_back_ios_new,
+                color: Colors.black,
+                size: 20,
+              ),
               onPressed: onBack,
             )
           : null,

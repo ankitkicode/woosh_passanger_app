@@ -26,7 +26,10 @@ class SignupView extends ConsumerWidget {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16),
-            child: Icon(Icons.verified_user_outlined, color: AppColors.primaryPink.withValues(alpha: 0.5)),
+            child: Icon(
+              Icons.verified_user_outlined,
+              color: AppColors.primaryPink.withValues(alpha: 0.5),
+            ),
           ),
         ],
       ),
@@ -35,7 +38,7 @@ class SignupView extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 32),
+            const SizedBox(height: 10),
             Row(
               children: [
                 Image.asset('assets/safety_note.png', height: 100),
@@ -49,14 +52,17 @@ class SignupView extends ConsumerWidget {
                       SizedBox(height: 8),
                       Text(
                         'A few details to get you started.\nWe ensure your safety, always.',
-                        style: TextStyle(fontSize: 14, color: AppColors.lightGray),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.lightGray,
+                        ),
                       ),
                     ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 10),
             WooshTextField(
               label: 'Full Name',
               hint: 'Enter your full name',
@@ -64,7 +70,7 @@ class SignupView extends ConsumerWidget {
               onChanged: notifier.updateFullName,
               errorText: state.errors['fullName'],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             WooshTextField(
               label: 'City',
               hint: 'Enter your city',
@@ -72,7 +78,7 @@ class SignupView extends ConsumerWidget {
               onChanged: notifier.updateCity,
               errorText: state.errors['city'],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             WooshTextField(
               label: 'WhatsApp Number',
               hint: 'Enter your WhatsApp number',
@@ -81,7 +87,7 @@ class SignupView extends ConsumerWidget {
               onChanged: notifier.updateWhatsappNumber,
               errorText: state.errors['whatsappNumber'],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             WooshTextField(
               label: 'Email ID (Optional)',
               hint: 'Enter your email ID',
@@ -89,16 +95,23 @@ class SignupView extends ConsumerWidget {
               keyboardType: TextInputType.emailAddress,
               onChanged: notifier.updateEmail,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
             // Emergency Contacts Section
             const Row(
               children: [
-                Icon(Icons.verified_user_outlined, size: 16, color: AppColors.primaryPink),
+                Icon(
+                  Icons.verified_user_outlined,
+                  size: 16,
+                  color: AppColors.primaryPink,
+                ),
                 SizedBox(width: 8),
                 Text('Emergency Contacts', style: AppTextStyles.label),
                 Spacer(),
-                Text('(Max 3)', style: TextStyle(fontSize: 12, color: AppColors.lightGray)),
+                Text(
+                  '(Max 3)',
+                  style: TextStyle(fontSize: 12, color: AppColors.lightGray),
+                ),
               ],
             ),
             const Text(
@@ -111,9 +124,13 @@ class SignupView extends ConsumerWidget {
               state.emergencyContacts.length,
               (index) => _EmergencyContactField(
                 index: index + 1,
-                onNameChanged: (v) => notifier.updateEmergencyContact(index, name: v),
-                onNumberChanged: (v) => notifier.updateEmergencyContact(index, number: v),
-                onRemove: state.emergencyContacts.length > 1 ? () => notifier.removeEmergencyContact(index) : null,
+                onNameChanged: (v) =>
+                    notifier.updateEmergencyContact(index, name: v),
+                onNumberChanged: (v) =>
+                    notifier.updateEmergencyContact(index, number: v),
+                onRemove: state.emergencyContacts.length > 1
+                    ? () => notifier.removeEmergencyContact(index)
+                    : null,
                 nameError: state.errors['contactName$index'],
                 numberError: state.errors['contactNumber$index'],
               ),
@@ -124,14 +141,22 @@ class SignupView extends ConsumerWidget {
                 padding: const EdgeInsets.only(bottom: 16),
                 child: TextButton.icon(
                   onPressed: notifier.addEmergencyContact,
-                  icon: const Icon(Icons.add_circle_outline, color: AppColors.primaryPink),
-                  label: const Text('Add Contact', style: TextStyle(color: AppColors.primaryPink, fontWeight: FontWeight.bold)),
+                  icon: const Icon(
+                    Icons.add_circle_outline,
+                    color: AppColors.primaryPink,
+                  ),
+                  label: const Text(
+                    'Add Contact',
+                    style: TextStyle(
+                      color: AppColors.primaryPink,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
 
-            const SizedBox(height: 8),
             const WooshPrivacyNotice(),
-            const SizedBox(height: 32),
+            const SizedBox(height: 22),
 
             WooshGradientButton(
               text: 'Continue',
@@ -143,7 +168,10 @@ class SignupView extends ConsumerWidget {
                     if (otpOrSent != 'sent') {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Test OTP: $otpOrSent (for testing only)', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          content: Text(
+                            'Test OTP: $otpOrSent (for testing only)',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           backgroundColor: AppColors.secondaryPurple,
                           duration: const Duration(seconds: 10),
                           behavior: SnackBarBehavior.floating,
@@ -156,17 +184,23 @@ class SignupView extends ConsumerWidget {
               },
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             Center(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text("Already have an account? ", style: TextStyle(color: AppColors.lightGray)),
+                  const Text(
+                    "Already have an account? ",
+                    style: TextStyle(color: AppColors.lightGray),
+                  ),
                   TextButton(
                     onPressed: () => context.go('/login'),
                     child: const Text(
                       'Login',
-                      style: TextStyle(color: AppColors.primaryPink, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: AppColors.primaryPink,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
@@ -219,13 +253,27 @@ class _EmergencyContactField extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.person_add_alt_1_outlined, size: 18, color: AppColors.primaryPink),
+              const Icon(
+                Icons.person_add_alt_1_outlined,
+                size: 18,
+                color: AppColors.primaryPink,
+              ),
               const SizedBox(width: 8),
-              Text('Emergency Contact $index', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+              Text(
+                'Emergency Contact $index',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const Spacer(),
               if (onRemove != null)
                 IconButton(
-                  icon: const Icon(Icons.remove_circle_outline, size: 20, color: AppColors.errorRed),
+                  icon: const Icon(
+                    Icons.remove_circle_outline,
+                    size: 20,
+                    color: AppColors.errorRed,
+                  ),
                   onPressed: onRemove,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -237,13 +285,26 @@ class _EmergencyContactField extends StatelessWidget {
             onChanged: onNameChanged,
             decoration: InputDecoration(
               hintText: 'Enter contact name',
-              hintStyle: const TextStyle(fontSize: 14, color: AppColors.lightGray),
-              prefixIcon: const Icon(Icons.person_outline, size: 20, color: AppColors.primaryPink),
+              hintStyle: const TextStyle(
+                fontSize: 14,
+                color: AppColors.lightGray,
+              ),
+              prefixIcon: const Icon(
+                Icons.person_outline,
+                size: 20,
+                color: AppColors.primaryPink,
+              ),
               errorText: nameError,
               filled: true,
               fillColor: const Color(0xFFFAFAFA),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -252,13 +313,26 @@ class _EmergencyContactField extends StatelessWidget {
             keyboardType: TextInputType.phone,
             decoration: InputDecoration(
               hintText: 'Enter mobile number',
-              hintStyle: const TextStyle(fontSize: 14, color: AppColors.lightGray),
-              prefixIcon: const Icon(Icons.phone_outlined, size: 20, color: AppColors.primaryPink),
+              hintStyle: const TextStyle(
+                fontSize: 14,
+                color: AppColors.lightGray,
+              ),
+              prefixIcon: const Icon(
+                Icons.phone_outlined,
+                size: 20,
+                color: AppColors.primaryPink,
+              ),
               errorText: numberError,
               filled: true,
               fillColor: const Color(0xFFFAFAFA),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
             ),
           ),
         ],

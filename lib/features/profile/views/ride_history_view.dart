@@ -37,7 +37,10 @@ class _RideHistoryViewState extends ConsumerState<RideHistoryView> {
         _isLoading = false;
       });
     } catch (e) {
-      setState(() { _isLoading = false; _error = e.toString(); });
+      setState(() {
+        _isLoading = false;
+        _error = e.toString();
+      });
     }
   }
 
@@ -49,119 +52,227 @@ class _RideHistoryViewState extends ConsumerState<RideHistoryView> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: GestureDetector(
-          onTap: () { if (context.canPop()) context.pop(); },
+          onTap: () {
+            if (context.canPop()) context.pop();
+          },
           child: const Icon(Icons.arrow_back, color: AppColors.darkText),
         ),
-        title: const Text('Ride History', style: AppTextStyles.actionTitle),
+        title: const Text(
+          'Ride History',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            color: AppColors.darkText,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryPink))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primaryPink),
+            )
           : _error != null
-              ? Center(child: Text(_error!, style: const TextStyle(color: AppColors.errorRed)))
-              : _rides.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.two_wheeler, size: 64, color: AppColors.borderPink),
-                          const SizedBox(height: 16),
-                          const Text('No rides yet!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 8),
-                          const Text('Book your first safe ride with Woosh.', style: TextStyle(color: AppColors.lightGray)),
-                          const SizedBox(height: 24),
-                          ElevatedButton(
-                            onPressed: () => context.go('/home'),
-                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryPink),
-                            child: const Text('Book a Ride', style: TextStyle(color: Colors.white)),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _rides.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (_, i) {
-                        final ride = _rides[i];
-                        final fare = (ride['finalFare'] as num? ?? ride['estimatedFare'] as num? ?? 0).toDouble();
-                        final status = (ride['status'] ?? 'completed').toString();
-                        final isCompleted = status == 'completed' || status == 'payment_completed';
-                        final date = ride['createdAt'] != null ? DateTime.tryParse(ride['createdAt'].toString()) : null;
+          ? Center(
+              child: Text(
+                _error!,
+                style: const TextStyle(color: AppColors.errorRed),
+              ),
+            )
+          : _rides.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.two_wheeler,
+                    size: 64,
+                    color: AppColors.borderPink,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No rides yet!',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Book your first safe ride with Woosh.',
+                    style: TextStyle(color: AppColors.lightGray),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () => context.go('/home'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryPink,
+                    ),
+                    child: const Text(
+                      'Book a Ride',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: _rides.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (_, i) {
+                final ride = _rides[i];
+                final fare =
+                    (ride['finalFare'] as num? ??
+                            ride['estimatedFare'] as num? ??
+                            0)
+                        .toDouble();
+                final status = (ride['status'] ?? 'completed').toString();
+                final isCompleted =
+                    status == 'completed' || status == 'payment_completed';
+                final date = ride['createdAt'] != null
+                    ? DateTime.tryParse(ride['createdAt'].toString())
+                    : null;
 
-                        return Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.dividerColor),
-                            boxShadow: [BoxShadow(color: AppColors.cardShadow, blurRadius: 8)],
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.dividerColor),
+                    boxShadow: [
+                      BoxShadow(color: AppColors.cardShadow, blurRadius: 8),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: const BoxDecoration(
+                              color: AppColors.lightPink,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.two_wheeler,
+                              color: AppColors.primaryPink,
+                              size: 22,
+                            ),
                           ),
-                          child: Column(
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  date != null
+                                      ? DateFormat(
+                                          'dd MMM yyyy, hh:mm a',
+                                        ).format(date)
+                                      : 'Date —',
+                                  style: const TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 12,
+                                    color: AppColors.lightGray,
+                                  ),
+                                ),
+                                Text(
+                                  '${(ride['distanceKm'] as num? ?? 0).toStringAsFixed(1)} km  •  ${ride['durationMinutes'] ?? 0} mins',
+                                  style: const TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 42, height: 42,
-                                    decoration: const BoxDecoration(color: AppColors.lightPink, shape: BoxShape.circle),
-                                    child: const Icon(Icons.two_wheeler, color: AppColors.primaryPink, size: 22),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          date != null ? DateFormat('dd MMM yyyy, hh:mm a').format(date) : 'Date —',
-                                          style: const TextStyle(fontFamily: 'Poppins', fontSize: 12, color: AppColors.lightGray),
-                                        ),
-                                        Text(
-                                          '${(ride['distanceKm'] as num? ?? 0).toStringAsFixed(1)} km  •  ${ride['durationMinutes'] ?? 0} mins',
-                                          style: const TextStyle(fontFamily: 'Poppins', fontSize: 13, fontWeight: FontWeight.w600),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text('₹${fare.toStringAsFixed(0)}', style: const TextStyle(fontFamily: 'Poppins', fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryPink)),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: (isCompleted ? AppColors.successGreen : AppColors.errorRed).withValues(alpha: 0.1),
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: Text(
-                                          status.toUpperCase(),
-                                          style: TextStyle(fontFamily: 'Poppins', fontSize: 10, fontWeight: FontWeight.bold,
-                                            color: isCompleted ? AppColors.successGreen : AppColors.errorRed),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                              Text(
+                                '₹${fare.toStringAsFixed(0)}',
+                                style: const TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primaryPink,
+                                ),
                               ),
-                              const Divider(height: 20),
-                              Row(
-                                children: [
-                                  const Icon(Icons.circle, size: 8, color: AppColors.secondaryPurple),
-                                  const SizedBox(width: 8),
-                                  Expanded(child: Text(ride['pickup']?['address'] ?? '—', style: const TextStyle(fontFamily: 'Poppins', fontSize: 12, color: AppColors.lightGray))),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  const Icon(Icons.location_on, size: 10, color: AppColors.primaryPink),
-                                  const SizedBox(width: 8),
-                                  Expanded(child: Text(ride['drop']?['address'] ?? '—', style: const TextStyle(fontFamily: 'Poppins', fontSize: 12, color: AppColors.lightGray))),
-                                ],
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color:
+                                      (isCompleted
+                                              ? AppColors.successGreen
+                                              : AppColors.errorRed)
+                                          .withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  status.toUpperCase(),
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: isCompleted
+                                        ? AppColors.successGreen
+                                        : AppColors.errorRed,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
-                        );
-                      },
-                    ),
+                        ],
+                      ),
+                      const Divider(height: 20),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.circle,
+                            size: 8,
+                            color: AppColors.secondaryPurple,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              ride['pickup']?['address'] ?? '—',
+                              style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 12,
+                                color: AppColors.lightGray,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.location_on,
+                            size: 10,
+                            color: AppColors.primaryPink,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              ride['drop']?['address'] ?? '—',
+                              style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 12,
+                                color: AppColors.lightGray,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
     );
   }
 }

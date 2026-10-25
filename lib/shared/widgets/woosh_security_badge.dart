@@ -22,7 +22,11 @@ class WooshSecurityBadge extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.lock_outline, size: 14, color: AppColors.pickupPurple),
+            const Icon(
+              Icons.lock_outline,
+              size: 14,
+              color: AppColors.pickupPurple,
+            ),
             const SizedBox(width: 8),
             Text(
               text,
@@ -66,8 +70,20 @@ class WooshPrivacyNotice extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                Text(subtitle, style: const TextStyle(fontSize: 11, color: AppColors.lightGray)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.lightGray,
+                  ),
+                ),
               ],
             ),
           ),
