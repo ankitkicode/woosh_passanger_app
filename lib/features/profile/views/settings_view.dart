@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:woosh/l10n/app_localizations.dart';
+import '../../../providers/language_provider.dart';
 
 class SettingsView extends ConsumerStatefulWidget {
   const SettingsView({super.key});
@@ -16,8 +18,64 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   bool _whatsappUpdates = true;
   bool _hideFullName = true;
 
+  void _showLanguageSelectionSheet(BuildContext context, WidgetRef ref, AppLocalizations loc) {
+    final currentLocale = ref.read(languageProvider);
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                loc.selectLanguage,
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1E1E1E),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                title: Text(loc.english),
+                trailing: currentLocale.languageCode == 'en'
+                    ? const Icon(Icons.check_circle, color: Color(0xFFD40B7E))
+                    : null,
+                onTap: () {
+                  ref.read(languageProvider.notifier).setLocale(const Locale('en'));
+                  Navigator.pop(context);
+                },
+              ),
+              const Divider(height: 1),
+              ListTile(
+                title: Text(loc.hindi),
+                trailing: currentLocale.languageCode == 'hi'
+                    ? const Icon(Icons.check_circle, color: Color(0xFFD40B7E))
+                    : null,
+                onTap: () {
+                  ref.read(languageProvider.notifier).setLocale(const Locale('hi'));
+                  Navigator.pop(context);
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    final currentLocale = ref.watch(languageProvider);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF7F7F7),
       appBar: AppBar(
@@ -38,9 +96,9 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
             ),
           ),
         ),
-        title: const Text(
-          'Settings',
-          style: TextStyle(
+        title: Text(
+          loc.settings,
+          style: const TextStyle(
             fontFamily: 'Poppins',
             color: Color(0xFF1E1E1E),
             fontWeight: FontWeight.w700,
@@ -54,11 +112,11 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
-              padding: EdgeInsets.only(left: 8, bottom: 8),
+            Padding(
+              padding: const EdgeInsets.only(left: 8, bottom: 8),
               child: Text(
-                'PREFERENCES',
-                style: TextStyle(
+                loc.preferences,
+                style: const TextStyle(
                   fontFamily: 'Poppins',
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -74,9 +132,9 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
               child: Column(
                 children: [
                   _buildNavItem(
-                    'Language',
-                    trailingText: 'English',
-                    onTap: () {},
+                    loc.language,
+                    trailingText: currentLocale.languageCode == 'hi' ? loc.hindi : loc.english,
+                    onTap: () => _showLanguageSelectionSheet(context, ref, loc),
                   ),
                   const Divider(
                     height: 1,
@@ -85,7 +143,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                     endIndent: 16,
                   ),
                   _buildToggleItem(
-                    'Ride updates',
+                    loc.rideUpdates,
                     _rideUpdates,
                     (val) => setState(() => _rideUpdates = val),
                   ),
@@ -96,7 +154,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                     endIndent: 16,
                   ),
                   _buildToggleItem(
-                    'Offers & promotions',
+                    loc.offersPromotions,
                     _offersPromotions,
                     (val) => setState(() => _offersPromotions = val),
                   ),
@@ -107,7 +165,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                     endIndent: 16,
                   ),
                   _buildToggleItem(
-                    'WhatsApp updates',
+                    loc.whatsappUpdates,
                     _whatsappUpdates,
                     (val) => setState(() => _whatsappUpdates = val),
                   ),
@@ -116,11 +174,11 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
             ),
 
             const SizedBox(height: 24),
-            const Padding(
-              padding: EdgeInsets.only(left: 8, bottom: 8),
+            Padding(
+              padding: const EdgeInsets.only(left: 8, bottom: 8),
               child: Text(
-                'PRIVACY',
-                style: TextStyle(
+                loc.privacy,
+                style: const TextStyle(
                   fontFamily: 'Poppins',
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -136,7 +194,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
               child: Column(
                 children: [
                   _buildNavItem(
-                    'Location access',
+                    loc.locationAccess,
                     trailingText: 'While using',
                     onTap: () {},
                   ),
@@ -147,10 +205,10 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                     endIndent: 16,
                   ),
                   _buildToggleItem(
-                    'Hide my full name from riders',
+                    loc.hideFullNameFromRiders,
                     _hideFullName,
                     (val) => setState(() => _hideFullName = val),
-                    subtitle: 'Riders only see your first name',
+                    subtitle: loc.hideFullNameSubtitle,
                   ),
                   const Divider(
                     height: 1,
@@ -158,24 +216,24 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                     indent: 16,
                     endIndent: 16,
                   ),
-                  _buildNavItem('Privacy policy', onTap: () {}),
+                  _buildNavItem(loc.privacyPolicy, onTap: () {}),
                   const Divider(
                     height: 1,
                     color: Color(0xFFEEEEEE),
                     indent: 16,
                     endIndent: 16,
                   ),
-                  _buildNavItem('Terms of service', onTap: () {}),
+                  _buildNavItem(loc.termsOfService, onTap: () {}),
                 ],
               ),
             ),
 
             const SizedBox(height: 24),
-            const Padding(
-              padding: EdgeInsets.only(left: 8, bottom: 8),
+            Padding(
+              padding: const EdgeInsets.only(left: 8, bottom: 8),
               child: Text(
-                'ACCOUNT',
-                style: TextStyle(
+                loc.account,
+                style: const TextStyle(
                   fontFamily: 'Poppins',
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -191,7 +249,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
               child: Column(
                 children: [
                   _buildNavItem(
-                    'Change MPIN',
+                    loc.changeMpin,
                     onTap: () => context.push('/change-mpin'),
                   ),
                   const Divider(
@@ -201,7 +259,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                     endIndent: 16,
                   ),
                   _buildNavItem(
-                    'Delete account',
+                    loc.deleteAccount,
                     onTap: () {},
                     isDestructive: true,
                   ),
@@ -210,10 +268,10 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
             ),
 
             const SizedBox(height: 32),
-            const Center(
+            Center(
               child: Text(
-                'Woosh v 1.0.0',
-                style: TextStyle(
+                '${loc.appTitle} v 1.0.0',
+                style: const TextStyle(
                   fontFamily: 'Poppins',
                   fontSize: 12,
                   color: Color(0xFF9E9E9E),

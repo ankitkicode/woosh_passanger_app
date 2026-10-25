@@ -177,11 +177,34 @@ class RideViewModel extends StateNotifier<RideState> {
   }
 
   /// Trigger SOS
-  Future<void> triggerSOS(String rideId) async {
+  Future<void> triggerSOS(
+    String rideId, {
+    double? latitude,
+    double? longitude,
+    String? address,
+  }) async {
     try {
-      final api = _ref.read(apiClientProvider);
-      await api.post('/ride/$rideId/sos', data: {});
-    } catch (_) {}
+      final safetyRepo = _ref.read(safetyRepositoryProvider);
+      await safetyRepo.triggerSos(
+        latitude: latitude,
+        longitude: longitude,
+        address: address,
+        rideId: rideId,
+      );
+    } catch (_) {
+      try {
+        final api = _ref.read(apiClientProvider);
+        await api.post(
+          '/tracking/sos',
+          data: {
+            'latitude': latitude ?? 28.6139,
+            'longitude': longitude ?? 77.2090,
+            'address': address ?? 'Connaught Place, New Delhi',
+            'rideId': rideId,
+          },
+        );
+      } catch (_) {}
+    }
   }
 
   /// Create Razorpay order

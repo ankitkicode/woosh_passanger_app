@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
+import 'package:woosh/l10n/app_localizations.dart';
 
 /// Bottom navigation bar — Home, My Rides, Safety, Profile
 class WooshBottomNav extends StatelessWidget {
@@ -10,6 +11,7 @@ class WooshBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -30,7 +32,7 @@ class WooshBottomNav extends StatelessWidget {
             children: [
               _NavItem(
                 icon: Icons.home_filled,
-                label: 'Home',
+                label: loc.home,
                 isActive: currentIndex == 0,
                 onTap: () {
                   if (currentIndex != 0) context.go('/home');
@@ -38,7 +40,7 @@ class WooshBottomNav extends StatelessWidget {
               ),
               _NavItem(
                 icon: Icons.access_time,
-                label: 'My Rides',
+                label: loc.myRides,
                 isActive: currentIndex == 1,
                 onTap: () {
                   if (currentIndex != 1) context.push('/ride-history');
@@ -46,7 +48,7 @@ class WooshBottomNav extends StatelessWidget {
               ),
               _NavItem(
                 icon: Icons.shield_outlined,
-                label: 'Safety',
+                label: loc.safety,
                 isActive: currentIndex == 2,
                 onTap: () {
                   if (currentIndex != 2) context.push('/safety');
@@ -54,7 +56,7 @@ class WooshBottomNav extends StatelessWidget {
               ),
               _NavItem(
                 icon: Icons.person_outline,
-                label: 'Profile',
+                label: loc.profile,
                 isActive: currentIndex == 3,
                 onTap: () {
                   if (currentIndex != 3) context.push('/profile');

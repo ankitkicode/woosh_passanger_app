@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:woosh/l10n/app_localizations.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_colors.dart';
 import '../view_models/profile_view_model.dart';
@@ -22,13 +23,14 @@ class ProfileView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(profileViewModelProvider);
+    final loc = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F7F7),
       appBar: AppBar(
-        title: const Text(
-          'Profile',
-          style: TextStyle(
+        title: Text(
+          loc.profile,
+          style: const TextStyle(
             fontFamily: 'Poppins',
             fontWeight: FontWeight.w800,
             fontSize: 20,
@@ -46,7 +48,7 @@ class ProfileView extends ConsumerWidget {
             )
           : state.error != null && state.data == null
           ? Center(child: Text('Error: ${state.error}'))
-          : _buildProfileContent(context, ref, state.data),
+          : _buildProfileContent(context, ref, state.data, loc),
     );
   }
 
@@ -54,6 +56,7 @@ class ProfileView extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     Map<String, dynamic>? data,
+    AppLocalizations loc,
   ) {
     final user = data ?? {};
     final name = user['name']?.isNotEmpty == true ? user['name'] : 'Your name';
@@ -174,9 +177,9 @@ class ProfileView extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'Edit profile',
-                          style: TextStyle(
+                        Text(
+                          loc.editProfile,
+                          style: const TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -216,9 +219,9 @@ class ProfileView extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'Rides',
-                          style: TextStyle(
+                        Text(
+                          loc.rides,
+                          style: const TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 12,
                             color: Color(0xFF757575),
@@ -259,9 +262,9 @@ class ProfileView extends ConsumerWidget {
                           ],
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'Your rating',
-                          style: TextStyle(
+                        Text(
+                          loc.yourRating,
+                          style: const TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 12,
                             color: Color(0xFF757575),
@@ -291,9 +294,9 @@ class ProfileView extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'Wallet',
-                          style: TextStyle(
+                        Text(
+                          loc.wallet,
+                          style: const TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 12,
                             color: Color(0xFF757575),
@@ -320,7 +323,7 @@ class ProfileView extends ConsumerWidget {
               children: [
                 _buildMenuItem(
                   Icons.account_balance_wallet_outlined,
-                  'Payments & wallet',
+                  loc.paymentsAndWallet,
                   () {
                     context.push('/wallet');
                   },
@@ -331,7 +334,7 @@ class ProfileView extends ConsumerWidget {
                   indent: 16,
                   endIndent: 16,
                 ),
-                _buildMenuItem(Icons.location_on_outlined, 'Saved places', () {
+                _buildMenuItem(Icons.location_on_outlined, loc.savedPlaces, () {
                   context.push('/saved-places');
                 }),
                 const Divider(
@@ -340,7 +343,7 @@ class ProfileView extends ConsumerWidget {
                   indent: 16,
                   endIndent: 16,
                 ),
-                _buildMenuItem(Icons.people_outline, 'Emergency contacts', () {
+                _buildMenuItem(Icons.people_outline, loc.emergencyContacts, () {
                   context.push('/emergency-contacts');
                 }, trailingText: emergencyContactsCount),
                 const Divider(
@@ -351,7 +354,7 @@ class ProfileView extends ConsumerWidget {
                 ),
                 _buildMenuItem(
                   Icons.card_giftcard,
-                  'Refer a friend',
+                  loc.referAFriend,
                   () {},
                   isPromo: true,
                   promoText: 'Earn ₹$referReward',
@@ -371,7 +374,7 @@ class ProfileView extends ConsumerWidget {
             ),
             child: Column(
               children: [
-                _buildMenuItem(Icons.light_mode_outlined, 'Settings', () {
+                _buildMenuItem(Icons.light_mode_outlined, loc.settings, () {
                   context.push('/settings');
                 }),
                 const Divider(
@@ -380,7 +383,7 @@ class ProfileView extends ConsumerWidget {
                   indent: 16,
                   endIndent: 16,
                 ),
-                _buildMenuItem(Icons.help_outline, 'Help & support', () {
+                _buildMenuItem(Icons.help_outline, loc.helpAndSupport, () {
                   context.push('/help-support');
                 }),
               ],
@@ -392,9 +395,9 @@ class ProfileView extends ConsumerWidget {
           // Logout
           TextButton(
             onPressed: () => _logout(context, ref),
-            child: const Text(
-              'Log out',
-              style: TextStyle(
+            child: Text(
+              loc.logout,
+              style: const TextStyle(
                 fontFamily: 'Poppins',
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
