@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../ride/view_models/ride_view_model.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'invoice_bottom_sheet.dart';
 
 class RideCompleteView extends ConsumerStatefulWidget {
   final String rideId;
@@ -138,7 +139,7 @@ class _RideCompleteViewState extends ConsumerState<RideCompleteView> {
                     alignment: Alignment.centerRight,
                     child: TextButton.icon(
                       onPressed: () {
-                        // Action for invoice
+                        showInvoiceBottomSheet(context, ref, widget.rideId);
                       },
                       icon: const Icon(
                         Icons.description_outlined,

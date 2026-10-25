@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:woosh/features/history/views/ride_history_view.dart';
 import '../../features/splash/views/splash_view.dart';
 import '../../features/onboarding/views/verification_view.dart';
 import '../../features/auth/views/login_view.dart';

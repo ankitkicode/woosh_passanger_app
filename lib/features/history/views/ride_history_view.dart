@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../view_models/ride_history_view_model.dart';
 import 'ride_history_details_view.dart';
+import '../../ride/views/invoice_bottom_sheet.dart';
 
 class RideHistoryView extends ConsumerStatefulWidget {
   const RideHistoryView({super.key});
@@ -246,14 +247,17 @@ class _RideHistoryViewState extends ConsumerState<RideHistoryView> {
         ? _formatDate(DateTime.parse(dateStr).toLocal())
         : 'Unknown Date';
 
-    final vehicleType =
-        ride['vehicleType']?['name'] ?? ride['category']?['name'] ?? 'Bike';
-    final subtitle = '[$dateText] · $vehicleType';
+    final vt = ride['vehicleType'];
+    final cat = ride['category'];
+    final vehicleType = vt is Map
+        ? (vt['name'] ?? 'Bike')
+        : (vt?.toString() ?? (cat is Map ? (cat['name'] ?? 'Bike') : (cat?.toString() ?? 'Bike')));
+    final subtitle = '$dateText · $vehicleType';
 
-    final dropAddress =
-        ride['drop']?['name'] ??
-        ride['drop']?['address'] as String? ??
-        '[Drop place]';
+    final drop = ride['drop'];
+    final dropAddress = drop is Map
+        ? (drop['name'] ?? drop['address'] ?? '[Drop place]')
+        : (drop?.toString() ?? '[Drop place]');
     String title = dropAddress;
 
     final finalFare = ride['finalFare'] ?? ride['estimatedFare'] ?? 0;
@@ -277,8 +281,10 @@ class _RideHistoryViewState extends ConsumerState<RideHistoryView> {
       chipText = status.toUpperCase();
     }
 
-    final rating = ride['rating'];
+    // final rating = ride['rating'];
+    final rating = ride['rating']?['riderRating'] ?? 0;
     Widget? ratingWidget;
+    Widget? invoiceButton;
     if (isCompleted) {
       if (rating != null) {
         ratingWidget = Row(
@@ -286,7 +292,7 @@ class _RideHistoryViewState extends ConsumerState<RideHistoryView> {
             const Icon(Icons.star, size: 14, color: Color(0xFF7A7A7A)),
             const SizedBox(width: 4),
             Text(
-              'You rated [$rating]',
+              '$rating',
               style: const TextStyle(
                 fontFamily: 'Poppins',
                 fontSize: 13,
@@ -306,6 +312,34 @@ class _RideHistoryViewState extends ConsumerState<RideHistoryView> {
           ),
         );
       }
+
+      invoiceButton = TextButton.icon(
+        onPressed: () {
+          final actualRideId = ride['_id']?.toString() ?? ride['id']?.toString() ?? '';
+          if (actualRideId.isNotEmpty) {
+            showInvoiceBottomSheet(context, ref, actualRideId);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Ride ID not available for invoice')),
+            );
+          }
+        },
+        icon: const Icon(Icons.description_outlined, size: 14, color: AppColors.primaryPink),
+        label: const Text(
+          'Invoice',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: AppColors.primaryPink,
+          ),
+        ),
+        style: TextButton.styleFrom(
+          padding: EdgeInsets.zero,
+          minimumSize: const Size(50, 24),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+      );
     }
 
     return GestureDetector(
@@ -389,6 +423,7 @@ class _RideHistoryViewState extends ConsumerState<RideHistoryView> {
                   ),
                   const SizedBox(height: 12),
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -409,10 +444,16 @@ class _RideHistoryViewState extends ConsumerState<RideHistoryView> {
                           ),
                         ),
                       ),
-                      if (ratingWidget != null) ...[
-                        const SizedBox(width: 12),
-                        ratingWidget,
-                      ],
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (ratingWidget != null) ...[
+                            ratingWidget,
+                            const SizedBox(width: 8),
+                          ],
+                          if (invoiceButton != null) invoiceButton,
+                        ],
+                      ),
                     ],
                   ),
                 ],
